@@ -1,5 +1,5 @@
 {
-  "chainId": "3",
+  "chainId": "420",
   "debug": false,
   "displayName": "Local",
   "explorerDebounce": 2000,
@@ -11,6 +11,6 @@
   "symbol": "LMR",
   "useNativeCookieJar": false,
   "web3Timeout": 60000,
-  "wsApiUrl": "wss://ropsten.infura.io/ws/v3/4b68229d56fe496e899f07c3d41cb08a",
+  "wsApiUrl": "wss://goerli.infura.io/ws/v3/91fa8dea25fe4bf4b8ce1c6be8bb9eb3",
   "proxyRouterBaseUrl": "hashrouter.lumerin.io:8080"
 }
