@@ -10,8 +10,8 @@ const addAccount = (web3, privateKey) =>
 const getNextNonce = (web3, from) =>
   web3.eth.getTransactionCount(from, 'pending')
 
-const sendLmr = (web3, chain, logTransaction, metaParsers) => {
-  const { Lumerin } = new LumerinContracts(web3, chain)
+const sendLmr = (web3, logTransaction, metaParsers, lumerinContracts) => {
+  const { Lumerin } = lumerinContracts;
 
   return (privateKey, { gasPrice, gas, from, to, value }) => {
     addAccount(web3, privateKey)

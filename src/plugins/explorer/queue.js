@@ -4,9 +4,8 @@ const { debounce, groupBy, merge, noop, reduce } = require('lodash');
 const debug = require('debug')('lmr-wallet:core:explorer:queue');
 const getTransactionStatus = require('./transaction-status');
 const promiseAllProps = require('promise-all-props');
-const LumerinContracts = require('@lumerin/contracts')
 
-function createQueue (config, eventBus, web3) {
+function createQueue (config, eventBus, web3, lumerinContracts) {
   debug.enabled = config.debug;
 
   const metasCache = {};
@@ -34,7 +33,7 @@ function createQueue (config, eventBus, web3) {
 
   function decodeInput({ transaction, receipt, meta }) {
     if (typeof transaction.input === 'string') {
-      const { Lumerin } = LumerinContracts[config.chainId]
+      const { Lumerin } = lumerinContracts
       const decoded = web3.eth.abi.decodeParameters(
         Lumerin.abi.find((a) => a.name === 'transfer').inputs,
         transaction.input.slice(10)

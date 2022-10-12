@@ -18,14 +18,16 @@ function createPlugin () {
    * @returns {{ events: string[] }} The instance details.
    */
   function start ({ config, eventBus, plugins }) {
-    const { chainId } = config;
+    const { cloneFactoryAddress, lmrTokenAddress } = config;
     const { eth } = plugins;
     const web3 = new Web3(eth.web3Provider);
+    const lumerinContracts = new LumerinContracts(web3, cloneFactoryAddress, lmrTokenAddress);
 
-    const refreshContracts = (web3, chainId) => () => {
+
+    const refreshContracts = (web3, lumerinContracts) => () => {
       eventBus.emit('contracts-scan-started', {});
 
-      return getActiveContracts(web3, chainId)
+      return getActiveContracts(web3, lumerinContracts)
         .then((contracts) => {
           console.log('----------------------------------------   ', { contracts })
           eventBus.emit('contracts-scan-finished', {
@@ -40,9 +42,9 @@ function createPlugin () {
 
     return {
       api: {
-        refreshContracts: refreshContracts(web3, chainId),
-        createContract: createContract(web3, chainId, plugins),
-        cancelContract: cancelContract(web3, chainId)
+        refreshContracts: refreshContracts(web3, lumerinContracts),
+        createContract: createContract(web3, lumerinContracts, plugins),
+        cancelContract: cancelContract(web3, lumerinContracts)
       },
       events: [
         'contracts-scan-started',

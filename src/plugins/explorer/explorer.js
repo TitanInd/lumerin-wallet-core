@@ -11,9 +11,9 @@ const createExplorer = (chainId, web3) => {
     case '1':
       baseURL = 'https://api.etherscan.io/api'
       break
-    case 'ropsten':
-    case '3':
-      baseURL = 'https://api-ropsten.etherscan.io/api'
+    case 'goerli':
+    case '420':
+      baseURL = 'https://api-goerli.etherscan.io/api'
       break
     default:
       throw new Error(`Unsupported chain ${chainId}`)

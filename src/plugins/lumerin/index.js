@@ -24,11 +24,13 @@ function createPlugin () {
   function start ({ config, eventBus, plugins }) {
     debug.enabled = config.debug;
 
-    const { chainId } = config;
+    const { cloneFactoryAddress, lmrTokenAddress  } = config;
     const { eth, explorer, token } = plugins;
-    const { Lumerin } = LumerinContracts[chainId];
 
     const web3 = new Web3(eth.web3Provider);
+    const lumerinContracts = new LumerinContracts(web3, cloneFactoryAddress, lmrTokenAddress);
+
+    const { Lumerin } = lumerinContracts;
 
     // Register LMR token
     token.registerToken(Lumerin.address, {
@@ -56,9 +58,9 @@ function createPlugin () {
       api: {
         sendLmr: sendLmr(
           web3,
-          chainId,
           explorer.logTransaction,
-          metaParsers
+          metaParsers,
+          lumerinContracts
         )
       },
       events: [

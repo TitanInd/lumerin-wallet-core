@@ -22,7 +22,10 @@ function createPlugin () {
     const web3 = new Web3(plugins.eth.web3Provider);
 
     const eventsRegistry = createEventsRegistry();
-    const queue = createQueue(config, eventBus, web3);
+
+    const { cloneFactoryAddress, lmrTokenAddress } = config;
+    const lumerinContracts = new LumerinContracts(web3, cloneFactoryAddress, lmrTokenAddress);
+    const queue = createQueue(config, eventBus, web3, lumerinContracts);
 
     const explorer = createExplorer(config.chainId, web3);
 

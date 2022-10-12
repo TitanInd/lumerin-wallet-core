@@ -1,10 +1,9 @@
 'use strict'
 
 const debug = require('debug')('lmr-wallet:core:contracts:api')
-const LumerinContracts = require('@lumerin/contracts')
 
-async function _getContractAddresses(web3, chain) {
-  const { CloneFactory } = new LumerinContracts(web3, chain)
+async function _getContractAddresses(lumerinContracts) {
+  const { CloneFactory } = lumerinContracts;
 
   return await CloneFactory.methods
     .getContractList()
@@ -17,10 +16,10 @@ async function _getContractAddresses(web3, chain) {
     })
 }
 
-async function _loadContractInstance(web3, chain, instanceAddress) {
+async function _loadContractInstance(web3, lumerinContracts, instanceAddress) {
   try {
     const implementationContract = await new web3.eth.Contract(
-      LumerinContracts[chain].Implementation.abi,
+      lumerinContracts.Implementation.abi,
       instanceAddress
     )
 
@@ -62,17 +61,17 @@ async function _loadContractInstance(web3, chain, instanceAddress) {
   }
 }
 
-async function getActiveContracts(web3, chain) {
+async function getActiveContracts(web3, lumerinContracts) {
   if (!web3) {
     debug('Not a valid Web3 instance')
     return
   }
-  const addresses = await _getContractAddresses(web3, chain)
-  const { Lumerin } = new LumerinContracts(web3, chain)
+  const addresses = await _getContractAddresses(lumerinContracts)
+  const { Lumerin } = lumerinContracts
 
   let activeContracts = []
   for (let i = 0; i < addresses.length; i++) {
-    const contract = await _loadContractInstance(web3, chain, addresses[i])
+    const contract = await _loadContractInstance(web3, lumerinContractss, addresses[i])
     const balance = await Lumerin.methods.balanceOf(contract.data.id).call()
 
     activeContracts.push({
@@ -84,13 +83,13 @@ async function getActiveContracts(web3, chain) {
   return activeContracts
 }
 
-function createContract(web3, chain, plugins) {
+function createContract(web3, lumerinContracts, plugins) {
   if (!web3) {
     debug('Not a valid Web3 instance')
     return
   }
 
-  const { CloneFactory } = new LumerinContracts(web3, chain)
+  const { CloneFactory } = lumerinContracts
 
   return async function (params) {
     // const { gasPrice } = await plugins.wallet.getGasPrice()
@@ -159,7 +158,7 @@ function createContract(web3, chain, plugins) {
 //   }
 // }
 
-function cancelContract(web3, chain) {
+function cancelContract(web3, lumerinContracts) {
   if (!web3) {
     debug('Not a valid Web3 instance')
     return
@@ -173,7 +172,7 @@ function cancelContract(web3, chain) {
 
     const implementationContract = await _loadContractInstance(
       web3,
-      chain,
+      lumerinContracts,
       contractId
     )
     const isRunning = implementationContract.data.state === '1'

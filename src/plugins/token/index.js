@@ -5,19 +5,15 @@ const Web3 = require('web3');
 const events = require('./events');
 const { registerToken, getTokenBalance, getTokenGasLimit } = require('./api');
 
-const LumerinContracts = require('@lumerin/contracts');
-
 const { chainId } = require('../../defaultConfig');
 
 function createPlugin () {
-  const { Lumerin } = LumerinContracts[chainId];
-
-
   let walletAddress;
 
   function start ({ config, eventBus, plugins }) {
     debug.enabled = config.debug;
 
+    const { lmrTokenAddress } = config;
 
     const web3 = new Web3(plugins.eth.web3Provider);
 
@@ -29,7 +25,7 @@ function createPlugin () {
           });
 
           eventBus.emit('token-contract-received', {
-            contract: Lumerin.address
+            contract: lmrTokenAddress
           });
         })
         .catch(function (err) {
