@@ -1,6 +1,7 @@
 'use strict';
 
 const debug = require('debug')('lmr-wallet:core:contracts');
+const { Lumerin, CloneFactory } = require('contracts-js');
 const Web3 = require('web3');
 
 const { getActiveContracts, createContract, cancelContract } = require('./api');
@@ -18,14 +19,17 @@ function createPlugin () {
    * @returns {{ events: string[] }} The instance details.
    */
   function start ({ config, eventBus, plugins }) {
-    const { chainId } = config;
+    const { lmrTokenAddress, cloneFactoryAddress } = config;
     const { eth } = plugins;
-    const web3 = new Web3(eth.web3Provider);
 
-    const refreshContracts = (web3, chainId) => () => {
+    const web3 = new Web3(eth.web3Provider);
+    const lumerin = Lumerin(web3, lmrTokenAddress);
+    const cloneFactory = CloneFactory(web3, cloneFactoryAddress);
+
+    const refreshContracts = (web3, lumerin, cloneFactory) => () => {
       eventBus.emit('contracts-scan-started', {});
 
-      return getActiveContracts(web3, chainId)
+      return getActiveContracts(web3, lumerin, cloneFactory)
         .then((contracts) => {
           console.log('----------------------------------------   ', { contracts })
           eventBus.emit('contracts-scan-finished', {
@@ -40,9 +44,9 @@ function createPlugin () {
 
     return {
       api: {
-        refreshContracts: refreshContracts(web3, chainId),
-        createContract: createContract(web3, chainId, plugins),
-        cancelContract: cancelContract(web3, chainId)
+        refreshContracts: refreshContracts(web3, lumerin, cloneFactory),
+        createContract: createContract(web3, cloneFactory, plugins),
+        cancelContract: cancelContract(web3)
       },
       events: [
         'contracts-scan-started',

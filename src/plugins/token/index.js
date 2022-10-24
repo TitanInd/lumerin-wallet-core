@@ -2,27 +2,24 @@
 
 const debug = require('debug')('lmr-wallet:core:token');
 const Web3 = require('web3');
+const { Lumerin } = require('contracts-js');
+
 const events = require('./events');
 const { registerToken, getTokenBalance, getTokenGasLimit } = require('./api');
 
-const LumerinContracts = require('@lumerin/contracts');
-
-const { chainId } = require('../../defaultConfig');
-
 function createPlugin () {
-  const { Lumerin } = LumerinContracts[chainId];
-
-
   let walletAddress;
 
   function start ({ config, eventBus, plugins }) {
     debug.enabled = config.debug;
+    const { lmrTokenAddress } = config;
 
 
     const web3 = new Web3(plugins.eth.web3Provider);
+    const lumerin = Lumerin(web3, lmrTokenAddress)
 
     function emitLmrBalance (walletAddress) {
-      getTokenBalance(web3, chainId, walletAddress)
+      getTokenBalance(lumerin, walletAddress)
         .then(function (balance) {
           eventBus.emit('token-balance-changed', {
             lmrBalance: balance,
@@ -55,7 +52,7 @@ function createPlugin () {
 
     return {
       api: {
-        getTokenGasLimit: getTokenGasLimit(web3),
+        getTokenGasLimit: getTokenGasLimit(lumerin),
         registerToken: registerToken(plugins),
         metaParsers: {
           approval: events.approvalMetaParser,

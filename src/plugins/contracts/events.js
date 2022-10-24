@@ -2,7 +2,7 @@
 
 const { utils: { hexToUtf8 } } = require('web3')
 // const LumerinContracts = require('metronome-contracts')
-const LumerinContracts = require('@lumerin/contracts')
+// const LumerinContracts = require('@lumerin/contracts')
 
 const exportMetaParser = ({ returnValues }) => ({
   lumerin: {

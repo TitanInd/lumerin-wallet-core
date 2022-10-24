@@ -2,6 +2,7 @@
 
 const debug = require('debug')('lmr-wallet:core:explorer');
 const Web3 = require('web3');
+const { Lumerin } = require('contracts-js');
 
 const createEventsRegistry = require('./events');
 const createLogTransaction = require('./log-transaction');
@@ -18,13 +19,15 @@ function createPlugin () {
 
   function start ({ config, eventBus, plugins }) {
     debug.enabled = config.debug;
+    const { lmrTokenAddress } = config;
 
     const web3 = new Web3(plugins.eth.web3Provider);
 
     const eventsRegistry = createEventsRegistry();
     const queue = createQueue(config, eventBus, web3);
+    const lumerin = Lumerin(web3, lmrTokenAddress);
 
-    const explorer = createExplorer(config.chainId, web3);
+    const explorer = createExplorer(config.chainId, web3, lumerin);
 
     syncer = createTransactionSyncer(
       config,

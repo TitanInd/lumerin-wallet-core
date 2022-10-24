@@ -2,9 +2,8 @@
 
 const axios = require('axios')
 const EventEmitter = require('events')
-const LumerinContracts = require('@lumerin/contracts')
 
-const createExplorer = (chainId, web3) => {
+const createExplorer = (chainId, web3, lumerin) => {
   let baseURL;
   switch (chainId.toString()) {
     case 'mainnet':
@@ -21,15 +20,14 @@ const createExplorer = (chainId, web3) => {
   const api = axios.create({
     baseURL,
   });
-  const { Lumerin } = LumerinContracts[chainId];
 
-  return new Explorer({ api, Lumerin, web3 });
+  return new Explorer({ api, lumerin, web3 });
 }
 
 class Explorer {
-  constructor({ api, Lumerin, web3 }) {
+  constructor({ api, lumerin, web3 }) {
     this.api = api;
-    this.Lumerin = Lumerin;
+    this.lumerin = lumerin;
     this.web3 = web3;
   }
 
@@ -38,7 +36,7 @@ class Explorer {
       module: 'account',
       action: 'tokentx',
       sort: 'desc',
-      contractaddress: this.Lumerin.address,
+      contractaddress: this.lumerin.address,
       startBlock: from,
       endBlock: to,
       address,
@@ -65,9 +63,7 @@ class Explorer {
   getTransactionStream = (address) => {
     const stream = new EventEmitter()
 
-    const contract = new this.web3.eth.Contract(this.Lumerin.abi, this.Lumerin.address)
-
-    contract.events
+    this.lumerin.events
       .Transfer({
         filter: {
           to: address,

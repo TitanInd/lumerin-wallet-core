@@ -1,7 +1,7 @@
 'use strict';
 
 // const LumerinContracts = require('metronome-contracts');
-const LumerinContracts = require('@lumerin/contracts');
+// const LumerinContracts = require('@lumerin/contracts');
 
 /**
  * Get the chain hop start time.

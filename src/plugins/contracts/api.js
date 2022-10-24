@@ -1,12 +1,13 @@
 'use strict'
 
 const debug = require('debug')('lmr-wallet:core:contracts:api')
-const LumerinContracts = require('@lumerin/contracts')
+const { CloneFactory, Implementation, Lumerin } = require('contracts-js')
 
-async function _getContractAddresses(web3, chain) {
-  const { CloneFactory } = new LumerinContracts(web3, chain)
-
-  return await CloneFactory.methods
+/**
+ * @param {CloneFactory} cloneFactory
+ */
+async function _getContractAddresses(cloneFactory) {
+  return await cloneFactory.methods
     .getContractList()
     .call()
     .catch((error) => {
@@ -17,16 +18,17 @@ async function _getContractAddresses(web3, chain) {
     })
 }
 
-async function _loadContractInstance(web3, chain, instanceAddress) {
+/**
+ * @param {web3} web3
+ * @param {string} implementationAddress
+ */
+async function _loadContractInstance(web3, implementationAddress) {
   try {
-    const implementationContract = await new web3.eth.Contract(
-      LumerinContracts[chain].Implementation.abi,
-      instanceAddress
-    )
-
+    const implementationContract = Implementation(web3, implementationAddress)
     const contract = await implementationContract.methods
       .getPublicVariables()
       .call()
+
     const {
       0: state,
       1: price, // cost to purchase the contract
@@ -41,7 +43,7 @@ async function _loadContractInstance(web3, chain, instanceAddress) {
 
     return {
       data: {
-        id: instanceAddress,
+        id: implementationAddress,
         price,
         speed,
         length,
@@ -57,23 +59,27 @@ async function _loadContractInstance(web3, chain, instanceAddress) {
   } catch (err) {
     debug(
       'Error when trying to load Contracts by address in the Implementation contract: ',
-      error
+      err
     )
   }
 }
 
-async function getActiveContracts(web3, chain) {
+/**
+ * @param {web3} web3
+ * @param {Lumerin} lumerin
+ * @param {CloneFactory} cloneFactory
+ */
+async function getActiveContracts(web3, lumerin, cloneFactory) {
   if (!web3) {
     debug('Not a valid Web3 instance')
     return
   }
-  const addresses = await _getContractAddresses(web3, chain)
-  const { Lumerin } = new LumerinContracts(web3, chain)
+  const addresses = await _getContractAddresses(cloneFactory)
 
   let activeContracts = []
   for (let i = 0; i < addresses.length; i++) {
-    const contract = await _loadContractInstance(web3, chain, addresses[i])
-    const balance = await Lumerin.methods.balanceOf(contract.data.id).call()
+    const contract = await _loadContractInstance(web3, addresses[i])
+    const balance = await lumerin.methods.balanceOf(contract.data.id).call()
 
     activeContracts.push({
       ...contract.data,
@@ -84,13 +90,15 @@ async function getActiveContracts(web3, chain) {
   return activeContracts
 }
 
-function createContract(web3, chain, plugins) {
+/**
+ * @param {web3} web3
+ * @param {CloneFactory} cloneFactory
+ */
+function createContract(web3, cloneFactory, plugins) {
   if (!web3) {
     debug('Not a valid Web3 instance')
     return
   }
-
-  const { CloneFactory } = new LumerinContracts(web3, chain)
 
   return async function (params) {
     // const { gasPrice } = await plugins.wallet.getGasPrice()
@@ -113,7 +121,7 @@ function createContract(web3, chain, plugins) {
       .getTransactionCount(sellerAddress, 'pending')
       .then((nonce) =>
         plugins.explorer.logTransaction(
-          CloneFactory.methods
+          cloneFactory.methods
             .setCreateNewRentalContract(
               price,
               limit,
@@ -134,7 +142,7 @@ function createContract(web3, chain, plugins) {
             ),
           sellerAddress
         )
-      );
+      )
   }
 }
 
@@ -159,21 +167,26 @@ function createContract(web3, chain, plugins) {
 //   }
 // }
 
-function cancelContract(web3, chain) {
+function cancelContract(web3) {
   if (!web3) {
     debug('Not a valid Web3 instance')
     return
   }
 
   return async function (params) {
-    const { walletAddress, gasLimit = 1000000, contractId, privateKey, closeOutType } = params
+    const {
+      walletAddress,
+      gasLimit = 1000000,
+      contractId,
+      privateKey,
+      closeOutType,
+    } = params
 
     const account = web3.eth.accounts.privateKeyToAccount(privateKey)
     web3.eth.accounts.wallet.create(0).add(account)
 
     const implementationContract = await _loadContractInstance(
       web3,
-      chain,
       contractId
     )
     const isRunning = implementationContract.data.state === '1'
@@ -188,7 +201,7 @@ function cancelContract(web3, chain) {
       .send({
         from: walletAddress,
         gas: gasLimit,
-    });
+      })
   }
 }
 

@@ -1,7 +1,6 @@
 'use strict';
 
 const abi = require('./erc20-abi.json');
-const { Lumerin } = require('@lumerin/contracts');
 
 const transferMetaParser = ({ returnValues }) => ({
   token: {

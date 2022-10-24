@@ -1,7 +1,7 @@
 'use strict';
 
 const debug = require('debug')('lmr-wallet:core:lumerin');
-const LumerinContracts = require('@lumerin/contracts');
+const { Lumerin } = require('contracts-js');
 const Web3 = require('web3');
 
 const { sendLmr } = require('./api');
@@ -24,14 +24,14 @@ function createPlugin () {
   function start ({ config, eventBus, plugins }) {
     debug.enabled = config.debug;
 
-    const { chainId } = config;
+    const { lmrTokenAddress } = config;
     const { eth, explorer, token } = plugins;
-    const { Lumerin } = LumerinContracts[chainId];
 
     const web3 = new Web3(eth.web3Provider);
+    const lumerin = Lumerin(web3, lmrTokenAddress)
 
     // Register LMR token
-    token.registerToken(Lumerin.address, {
+    token.registerToken(lumerin.address, {
       decimals: 8,
       name: 'Lumerin',
       symbol: 'LMR'
@@ -56,7 +56,7 @@ function createPlugin () {
       api: {
         sendLmr: sendLmr(
           web3,
-          chainId,
+          lumerin,
           explorer.logTransaction,
           metaParsers
         )

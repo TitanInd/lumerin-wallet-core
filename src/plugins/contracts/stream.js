@@ -2,8 +2,6 @@
 
 const debug = require('debug')('lmr-wallet:core:contracts-stream');
 
-const { Lumerin } = require('@lumerin/contracts');
-
 /**
  * Create a "classic" stream that connects to Lumerin Contracts.
  *

@@ -1,7 +1,5 @@
 'use strict'
 
-const LumerinContracts = require('@lumerin/contracts')
-
 const addAccount = (web3, privateKey) =>
   web3.eth.accounts.wallet
     .create(0)
@@ -10,9 +8,7 @@ const addAccount = (web3, privateKey) =>
 const getNextNonce = (web3, from) =>
   web3.eth.getTransactionCount(from, 'pending')
 
-const sendLmr = (web3, chain, logTransaction, metaParsers) => {
-  const { Lumerin } = new LumerinContracts(web3, chain)
-
+const sendLmr = (web3, lumerin, logTransaction, metaParsers) => {
   return (privateKey, { gasPrice, gas, from, to, value }) => {
     addAccount(web3, privateKey)
     console.log({ gasPrice, gas, from, to, value });
@@ -26,10 +22,10 @@ const sendLmr = (web3, chain, logTransaction, metaParsers) => {
 
     return getNextNonce(web3, from).then((nonce) =>
       logTransaction(
-        Lumerin.methods.transfer(to, lmrUnits).send({ from, gas: 999999 }),
+        lumerin.methods.transfer(to, lmrUnits).send({ from, gas: 999999 }),
         from,
         metaParsers.transfer({
-          address: Lumerin.options.address,
+          address: lumerin.options.address,
           returnValues: { _from: from, _to: to, _value: lmrUnits },
         })
       )
