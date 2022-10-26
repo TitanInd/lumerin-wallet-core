@@ -32,6 +32,7 @@
     "@mhoc/axios-digest-auth": "^0.8.0",
     "axios": "0.21.1",
     "axios-cookiejar-support": "1.0.1",
+    "bittrex-node": "^1.2.1",
     "cheerio": "^1.0.0-rc.12",
     "contracts-js": "github:Lumerin-protocol/contracts-js#v0.0.13",
     "debug": "4.1.1",
