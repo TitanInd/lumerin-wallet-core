@@ -62,7 +62,7 @@ function createConnectionsManager (config, eventBus) {
       {
         forever: true,
         onFailedAttempt (err) {
-          // debug('Failed to get connections stream cookie', err)
+          debug('Failed to get connections stream cookie', err)
         }
       }
     );
