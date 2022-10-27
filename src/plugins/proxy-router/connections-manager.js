@@ -1,5 +1,6 @@
 'use strict';
 
+const url = require('url');
 const { CookieJar } = require('tough-cookie');
 const { create: createAxios } = require('axios');
 const { default: axiosCookieJarSupport } = require('axios-cookiejar-support');
@@ -17,6 +18,7 @@ const pRetry = require('p-retry');
  */
 function createConnectionsManager (config, eventBus) {
   const { debug: enableDebug, useNativeCookieJar, proxyRouterUrl } = config;
+  const baseProxyRouterUrl = url.parse(proxyRouterUrl).host;
 
   debug.enabled = enableDebug;
 
@@ -26,12 +28,12 @@ function createConnectionsManager (config, eventBus) {
 
   if (useNativeCookieJar) {
     axios = createAxios({
-      baseURL: "http://" + proxyRouterUrl
+      baseURL: proxyRouterUrl
     });
   } else {
     jar = new CookieJar();
     axios = axiosCookieJarSupport(createAxios(({
-      baseURL: "http://" + proxyRouterUrl,
+      baseURL: proxyRouterUrl,
       withCredentials: true
     })));
     axios.defaults.jar = jar;
@@ -41,10 +43,10 @@ function createConnectionsManager (config, eventBus) {
     axios("/connections")
       .then(res => res.data);
 
-  const getSocket = () => io("ws://" + proxyRouterUrl + "/ws", {
+  const getSocket = () => io("ws://" + baseProxyRouterUrl + "/ws", {
       autoConnect: true,
       extraHeaders: jar
-        ? { Cookie: jar.getCookiesSync("ws://" + proxyRouterUrl + "/ws").join(';') }
+        ? { Cookie: jar.getCookiesSync("ws://" + baseProxyRouterUrl + "/ws").join(';') }
         : {}
     });
 
