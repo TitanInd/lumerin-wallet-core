@@ -11,12 +11,9 @@ const getNextNonce = (web3, from) =>
 const sendLmr = (web3, lumerin, logTransaction, metaParsers) => {
   return (privateKey, { gasPrice, gas, from, to, value }) => {
     addAccount(web3, privateKey)
-    console.log({ gasPrice, gas, from, to, value });
     const lmrValue = parseFloat(value);
     const lmrUnits = Math.floor(Number(lmrValue * 10 ** 8)).toString();
     
-    console.log("lmr units: ", lmrUnits);
-
     // to = '0x146590438A9Ab7F186d9758629Af476b2B962A37'
     // value = 100 //value needs to be in units of 1x10^8 lumerin
 

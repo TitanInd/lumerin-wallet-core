@@ -3,11 +3,10 @@
 const axios = require('axios').default;
 const { getExchangeRate } = require('safe-exchange-rate')
 const debug = require('debug')('lmr-wallet:core:rates')
-const { BittrexClient } = require('bittrex-node')
 
+const { getLmrRate } = require('./getLmrRate');
 
 const createStream = require('./stream')
-const client = new BittrexClient()
 
 /**
  * Create a plugin instance.
@@ -30,27 +29,9 @@ function createPlugin() {
 
     const { ratesUpdateMs, symbol } = config
 
-    const getAsset = (id) =>
-    axios
-      .get(`https://api.coingecko.com/api/v3/simple/price`, {
-        params: {
-          ids: 'lumerin',
-          vs_currencies: 'usd'
-        }
-      })
-      .then((response) =>
-        response.data &&
-        response.data.lumerin &&
-        typeof response.data.lumerin.usd === 'number'
-          ? Number.parseFloat( response.data.lumerin.usd)
-          : null
-      )
-
     const getRate = () =>
-      // TODO: Update LMR/ETH or LMR/USD rate whenever we get put onto a dex
-      // getExchangeRate(`${symbol}:USD`).then(function (rate) {
       {
-        return symbol === 'LMR' ? getAsset() : getExchangeRate(`LMR:USD`).then(function (rate) {
+        return symbol === 'LMR' ? getLmrRate() : getExchangeRate(`${symbol}:USD`).then(function (rate) {
           if (typeof rate !== 'number') {
             throw new Error(`No exchange rate retrieved for ${symbol}`)
           }
