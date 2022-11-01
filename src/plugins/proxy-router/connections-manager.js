@@ -1,5 +1,6 @@
 'use strict';
 
+const url = require('url');
 const { CookieJar } = require('tough-cookie');
 const { create: createAxios } = require('axios');
 const { default: axiosCookieJarSupport } = require('axios-cookiejar-support');
@@ -16,7 +17,8 @@ const pRetry = require('p-retry');
  * @returns {object} The exposed indexer API.
  */
 function createConnectionsManager (config, eventBus) {
-  const { debug: enableDebug, useNativeCookieJar, proxyRouterBaseUrl } = config;
+  const { debug: enableDebug, useNativeCookieJar, proxyRouterUrl } = config;
+  const baseProxyRouterUrl = url.parse(proxyRouterUrl).host;
 
   debug.enabled = enableDebug;
 
@@ -26,12 +28,12 @@ function createConnectionsManager (config, eventBus) {
 
   if (useNativeCookieJar) {
     axios = createAxios({
-      baseURL: "http://" + proxyRouterBaseUrl
+      baseURL: proxyRouterUrl
     });
   } else {
     jar = new CookieJar();
     axios = axiosCookieJarSupport(createAxios(({
-      baseURL: "http://" + proxyRouterBaseUrl,
+      baseURL: proxyRouterUrl,
       withCredentials: true
     })));
     axios.defaults.jar = jar;
@@ -41,10 +43,10 @@ function createConnectionsManager (config, eventBus) {
     axios("/connections")
       .then(res => res.data);
 
-  const getSocket = () => io("ws://" + proxyRouterBaseUrl + "/ws", {
+  const getSocket = () => io("ws://" + baseProxyRouterUrl + "/ws", {
       autoConnect: true,
       extraHeaders: jar
-        ? { Cookie: jar.getCookiesSync("ws://" + proxyRouterBaseUrl + "/ws").join(';') }
+        ? { Cookie: jar.getCookiesSync("ws://" + baseProxyRouterUrl + "/ws").join(';') }
         : {}
     });
 
