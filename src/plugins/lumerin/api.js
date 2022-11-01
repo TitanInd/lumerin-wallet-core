@@ -19,7 +19,7 @@ const sendLmr = (web3, lumerin, logTransaction, metaParsers) => {
 
     return getNextNonce(web3, from).then((nonce) =>
       logTransaction(
-        lumerin.methods.transfer(to, lmrUnits).send({ from, gas: 999999 }),
+        lumerin.methods.transfer(to, lmrUnits).send({ from, gas }),
         from,
         metaParsers.transfer({
           address: lumerin.options.address,
@@ -29,6 +29,13 @@ const sendLmr = (web3, lumerin, logTransaction, metaParsers) => {
     )
   }
 }
+
+const estimateGasTransfer = (lumerin) => {
+  return ({ from, to, value }) => {
+    return lumerin.methods.transfer(to, value).estimateGas({ from }).then((gasLimit) => ({ gasLimit }))
+  }
+}
+
 // {
 //   [1]   gasPrice: '1000000000',
 //   [1]   gas: '999999',
@@ -55,4 +62,5 @@ const increaseAllowance = (
 module.exports = {
   increaseAllowance,
   sendLmr,
+  estimateGasTransfer,
 }
