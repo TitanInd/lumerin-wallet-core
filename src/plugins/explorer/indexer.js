@@ -19,7 +19,6 @@ const pRetry = require('p-retry');
  */
 function createIndexer (config, eventBus) {
   const { chainId, debug: enableDebug, indexerUrl, useNativeCookieJar, wsIndexerUrl } = config;
-  const { HTTP_INDEXER_URL } = process.env;
 
   debug.enabled = enableDebug;
 
@@ -29,7 +28,7 @@ function createIndexer (config, eventBus) {
 
   if (useNativeCookieJar) {
     axios = createAxios({
-      baseURL: HTTP_INDEXER_URL || indexerUrl,
+      baseURL: indexerUrl,
       params: {
         apikey: '4VPHZ7SNPRRWKE23RBMX1MFUHZYDCAM9A4',
       }
@@ -37,7 +36,7 @@ function createIndexer (config, eventBus) {
   } else {
     jar = new CookieJar();
     axios = axiosCookieJarSupport(createAxios(({
-      baseURL: HTTP_INDEXER_URL || indexerUrl,
+      baseURL: indexerUrl,
       withCredentials: true
     })));
     axios.defaults.jar = jar;

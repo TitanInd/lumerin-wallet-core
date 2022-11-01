@@ -7,7 +7,7 @@ function createWeb3 (config, eventBus) {
   debug.enabled = config.debug;
 
   const web3 = new Web3(new Web3.providers.WebsocketProvider(
-    process.env.CHAIN_URL || config.wsApiUrl,
+    config.wsApiUrl,
     { autoReconnect: true, timeout: config.web3Timeout }
   ));
 
