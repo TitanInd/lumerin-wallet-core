@@ -4,7 +4,7 @@ const debug = require('debug')('lmr-wallet:core:lumerin');
 const { Lumerin } = require('contracts-js');
 const Web3 = require('web3');
 
-const { sendLmr } = require('./api');
+const { sendLmr, estimateGasTransfer } = require('./api');
 
 /**
  * Creates an instance of the Lumerin plugin.
@@ -59,7 +59,8 @@ function createPlugin () {
           lumerin,
           explorer.logTransaction,
           metaParsers
-        )
+        ),
+        estimateGasTransfer: estimateGasTransfer(lumerin),
       },
       events: [
         'wallet-error'
