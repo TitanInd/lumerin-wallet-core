@@ -113,7 +113,6 @@ function createContract(web3, cloneFactory, plugins) {
 
     web3.eth.accounts.wallet.create(0).add(account)
 
-    return new Promise((resolve) => setTimeout(() => resolve({}), 20000));
 
     return web3.eth
       .getTransactionCount(sellerAddress, 'pending')
