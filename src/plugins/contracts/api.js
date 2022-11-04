@@ -76,18 +76,14 @@ async function getActiveContracts(web3, lumerin, cloneFactory) {
   }
   const addresses = await _getContractAddresses(cloneFactory)
 
-  let activeContracts = []
-  for (let i = 0; i < addresses.length; i++) {
-    const contract = await _loadContractInstance(web3, addresses[i])
-    const balance = await lumerin.methods.balanceOf(contract.data.id).call()
-
-    activeContracts.push({
+  return Promise.all(addresses.map(async a => {
+    const contract = await _loadContractInstance(web3, a)
+    const balance = await lumerin.methods.balanceOf(contract.data.id).call();
+    return {
       ...contract.data,
       balance,
-    })
-  }
-
-  return activeContracts
+    };
+  }));
 }
 
 /**
@@ -116,6 +112,8 @@ function createContract(web3, cloneFactory, plugins) {
     const account = web3.eth.accounts.privateKeyToAccount(privateKey)
 
     web3.eth.accounts.wallet.create(0).add(account)
+
+    return new Promise((resolve) => setTimeout(() => resolve({}), 20000));
 
     return web3.eth
       .getTransactionCount(sellerAddress, 'pending')
