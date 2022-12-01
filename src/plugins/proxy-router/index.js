@@ -27,7 +27,7 @@ function createPlugin() {
 
     return {
       api: {
-        refreshConnectionsStream: refreshConnectionsStream(),
+        refreshConnectionsStream: refreshConnectionsStream,
         // getConnections: connectionManager.getConnections(),
         // getConnectionsStream: connectionManager.getConnectionsStream()
       },

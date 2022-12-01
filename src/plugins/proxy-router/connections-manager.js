@@ -73,9 +73,6 @@ function createConnectionsManager(config, eventBus) {
    * Disconnects.
    */
   function disconnect() {
-    if (socket) {
-      socket.close()
-    }
     if (interval) {
       clearInterval(interval)
     }
