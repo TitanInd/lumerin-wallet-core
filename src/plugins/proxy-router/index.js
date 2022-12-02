@@ -13,9 +13,9 @@ function createPlugin() {
     debug('Initiating proxy-router connections stream')
     connectionManager = createConnectionManager(config, eventBus)
 
-    const refreshConnectionsStream = () =>
+    const refreshConnectionsStream = (data) =>
       connectionManager
-        .getConnectionsStream()
+        .getConnectionsStream(data.url)
         .on('data', (data) => {
           eventBus.emit('proxy-router-connections-changed', {
             connections: data.connections,

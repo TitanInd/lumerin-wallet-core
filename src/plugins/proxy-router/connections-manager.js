@@ -13,7 +13,7 @@ const EventEmitter = require('events')
  */
 function createConnectionsManager(config, eventBus) {
   const { debug: enableDebug, proxyRouterUrl } = config
-  const pollingInterval = 5000;
+  const pollingInterval = 5000
 
   debug.enabled = enableDebug
 
@@ -32,10 +32,16 @@ function createConnectionsManager(config, eventBus) {
    * or an error occurs, an `error` event will be emitted. In addition, when the
    * connection is restablished, a `resync` will be emitted.
    *
+   * @param {string} [url] Overrides url from config
+   *
    * @returns {object} The event emitter.
    */
-  function getConnectionsStream() {
+  function getConnectionsStream(url) {
     const stream = new EventEmitter()
+
+    if (url) {
+      axios.defaults.baseURL = url
+    }
 
     let isConnected = false
 
@@ -64,7 +70,7 @@ function createConnectionsManager(config, eventBus) {
           })
           eventBus.emit('error', `error fetching connections: ${err}`)
         })
-    }, pollingInterval);
+    }, pollingInterval)
 
     return stream
   }
