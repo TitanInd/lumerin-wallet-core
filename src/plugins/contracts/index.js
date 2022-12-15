@@ -4,7 +4,7 @@ const debug = require('debug')('lmr-wallet:core:contracts');
 const { Lumerin, CloneFactory } = require('contracts-js');
 const Web3 = require('web3');
 
-const { getActiveContracts, createContract, cancelContract } = require('./api');
+const { getActiveContracts, createContract, cancelContract, purchaseContract } = require('./api');
 
 /**
  * Create a plugin instance.
@@ -46,7 +46,8 @@ function createPlugin () {
       api: {
         refreshContracts: refreshContracts(web3, lumerin, cloneFactory),
         createContract: createContract(web3, cloneFactory, plugins),
-        cancelContract: cancelContract(web3)
+        cancelContract: cancelContract(web3),
+        purchaseContract: purchaseContract(web3, cloneFactory, lumerin)
       },
       events: [
         'contracts-scan-started',
