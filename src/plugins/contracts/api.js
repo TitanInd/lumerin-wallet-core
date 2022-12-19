@@ -207,10 +207,9 @@ function purchaseContract(web3, cloneFactory, lumerin) {
     const { walletId, contractId, url, privateKey, price } = params;
     const sendOptions = { from: walletId, gas: 1_000_000}
 
-    const account = web3.eth.accounts.privateKeyToAccount(privateKey)
-    web3.eth.accounts.wallet.create(0).add(account)
-
-    await web3.eth.getTransactionCount(walletId, 'pending')
+    const account = web3.eth.accounts.privateKeyToAccount(privateKey);
+    web3.eth.accounts.wallet.create(0).add(account);
+    
     await lumerin.methods
       .increaseAllowance(cloneFactory.options.address, price)
       .send(sendOptions);
