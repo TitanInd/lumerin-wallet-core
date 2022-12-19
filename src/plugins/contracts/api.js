@@ -85,7 +85,7 @@ async function getActiveContracts(web3, lumerin, cloneFactory) {
     };
   }));
 }
-
+        
 /**
  * @param {web3} web3
  * @param {CloneFactory} cloneFactory
@@ -202,8 +202,29 @@ function cancelContract(web3) {
   }
 }
 
+function purchaseContract(web3, cloneFactory, lumerin) {
+  return async (params) => {
+    const { walletId, contractId, url, privateKey, price } = params;
+    const sendOptions = { from: walletId, gas: 1_000_000}
+
+    const account = web3.eth.accounts.privateKeyToAccount(privateKey);
+    web3.eth.accounts.wallet.create(0).add(account);
+    
+    await lumerin.methods
+      .increaseAllowance(cloneFactory.options.address, price)
+      .send(sendOptions);
+
+    const purchaseResult = await cloneFactory.methods
+      .setPurchaseRentalContract(contractId, url)
+      .send(sendOptions);
+
+    debug(`Finished puchase transaction`, purchaseResult);
+  }
+}
+
 module.exports = {
   getActiveContracts,
   createContract,
   cancelContract,
+  purchaseContract
 }
