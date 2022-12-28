@@ -23,7 +23,10 @@ function createConnectionsManager(config, eventBus) {
 
   let interval
 
-  const getConnections = () => axios('/miners').then((res) => res.data.Miners)
+  const getConnections = async () => {
+    const res = await axios('/miners')
+    return res.data?.Miners
+  }
 
   /**
    * Create a stream that will emit an event each time a connection is published to the proxy-router
@@ -45,31 +48,33 @@ function createConnectionsManager(config, eventBus) {
 
     let isConnected = false
 
-    interval = setInterval(() => {
-      debug('Attempting to get connections')
-      getConnections()
-        .then((connections) => {
-          if (!isConnected) {
-            isConnected = true
-            debug('emit proxy-router-status-changed')
-            eventBus.emit('proxy-router-status-changed', {
-              isConnected,
-              syncStatus: 'synced',
-            })
-          }
-
-          stream.emit('data', {
-            connections,
-          })
-        })
-        .catch((err) => {
-          isConnected = false
+    interval = setInterval(async () => {
+      try {
+        debug('Attempting to get connections')
+        const connections = await getConnections()
+        if (!isConnected) {
+          isConnected = true
+          debug('emit proxy-router-status-changed')
           eventBus.emit('proxy-router-status-changed', {
             isConnected,
-            syncStatus: 'syncing',
+            syncStatus: 'synced',
           })
-          eventBus.emit('error', `error fetching connections: ${err}`)
+        }
+
+        stream.emit('data', {
+          connections,
         })
+      } catch (err) {
+        isConnected = false
+        eventBus.emit('proxy-router-status-changed', {
+          isConnected,
+          syncStatus: 'syncing',
+        })
+        stream.emit(
+          'error',
+          err
+        )
+      }
     }, pollingInterval)
 
     return stream
@@ -86,7 +91,6 @@ function createConnectionsManager(config, eventBus) {
 
   return {
     disconnect,
-    getConnections,
     getConnectionsStream,
   }
 }

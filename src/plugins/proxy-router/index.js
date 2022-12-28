@@ -22,14 +22,16 @@ function createPlugin() {
           })
         })
         .on('error', (err) => {
-          eventBus.emit('error', `Proxy router connection error: ${err}`)
+          eventBus.emit('wallet-error', {
+            inner: err,
+            message: `Proxy router connection error`,
+            meta: { plugin: 'proxy-router' },
+          })
         })
 
     return {
       api: {
         refreshConnectionsStream: refreshConnectionsStream,
-        // getConnections: connectionManager.getConnections(),
-        // getConnectionsStream: connectionManager.getConnectionsStream()
       },
       events: [
         'proxy-router-connections-changed',
