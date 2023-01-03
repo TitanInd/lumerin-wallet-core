@@ -1,6 +1,6 @@
 {
   "name": "@lumerin/wallet-core",
-  "version": "1.0.16",
+  "version": "1.0.17",
   "author": {
     "name": "Kodee McIntosh",
     "email": "kodee@lumerin.io",
@@ -30,6 +30,7 @@
   "dependencies": {
     "@azure/abort-controller": "^1.1.0",
     "@mhoc/axios-digest-auth": "^0.8.0",
+    "abi-decoder": "^2.4.0",
     "axios": "0.21.1",
     "axios-cookiejar-support": "1.0.1",
     "cheerio": "^1.0.0-rc.12",

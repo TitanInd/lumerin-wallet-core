@@ -4,10 +4,16 @@ const { debounce, groupBy, merge, noop, reduce } = require('lodash')
 const debug = require('debug')('lmr-wallet:core:explorer:queue')
 const getTransactionStatus = require('./transaction-status')
 const promiseAllProps = require('promise-all-props')
-const abi = require('../token/erc20-abi.json');
+const abiDecoder = require('abi-decoder')
+const { Lumerin, CloneFactory } = require('contracts-js')
 
 function createQueue(config, eventBus, web3) {
   debug.enabled = config.debug
+
+  const lumerin = Lumerin(web3, config.lmrTokenAddress)
+  const cloneFactory = CloneFactory(web3, config.cloneFactoryAddress)
+  abiDecoder.addABI(lumerin.options.jsonInterface)
+  abiDecoder.addABI(cloneFactory.options.jsonInterface)
 
   const metasCache = {}
 
@@ -33,20 +39,38 @@ function createQueue(config, eventBus, web3) {
   }
 
   function decodeInput({ transaction, receipt, meta }) {
-    if (typeof transaction.input === 'string') {
-      const decoded = web3.eth.abi.decodeParameters(
-        abi.find(a => a.name === 'transfer').inputs,
-        transaction.input.slice(10)
-      )
-      const to = decoded['0'];
-      const amount = decoded['1']
-      transaction.input = {
-        to,
-        amount
+    try {
+      if (typeof transaction.input === 'string') {
+        const logs = abiDecoder.decodeLogs(receipt.logs)
+        if (!logs) {
+          return null
+        }
+
+        const transfer = logs.find((l) => l.name === 'Transfer')
+        if (!transfer) {
+          return null
+        }
+        const { events } = transfer
+
+        const valueParam = events.find((p) => p.name === 'value')
+        if (valueParam === undefined) {
+          return null
+        }
+        const toParam = events.find((p) => p.name === 'to')
+        if (toParam === undefined) {
+          return null
+        }
+
+        transaction.input = {
+          to: toParam.value,
+          amount: valueParam.value,
+        }
+        return { transaction, receipt, meta }
       }
       return { transaction, receipt, meta }
+    } catch (err) {
+      return null
     }
-    return { transaction, receipt, meta }
   }
 
   function emitTransactions(address, transactions) {
@@ -54,14 +78,16 @@ function createQueue(config, eventBus, web3) {
       transactions: transactions
         .filter((data) => !!data.transaction)
         .map(fillInStatus)
-        .map(decodeInput),
+        .map(decodeInput)
+        .filter((i) => !!i),
     })
 
     eventBus.emit('token-transactions-changed', {
       transactions: transactions
         .filter((data) => !!data.transaction)
         .map(fillInStatus)
-        .map(decodeInput),
+        .map(decodeInput)
+        .filter((i) => !!i),
     })
 
     Promise.all([eventBus.emit('eth-tx'), eventBus.emit('lmr-tx')])
