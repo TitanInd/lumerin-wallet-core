@@ -188,7 +188,7 @@ function cancelContract(web3) {
     )
     const isRunning = implementationContract.data.state === '1'
 
-    if (isRunning) {
+    if (isRunning && closeOutType !== 1) {
       debug("Contract is currently in the 'Running' state")
       return
     }
