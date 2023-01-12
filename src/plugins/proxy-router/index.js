@@ -15,7 +15,7 @@ function createPlugin() {
 
     const refreshConnectionsStream = (data) =>
       connectionManager
-        .getConnectionsStream(data.url)
+        .getConnectionsStream(data.sellerNodeUrl, data.buyerNodeUrl)
         .on('data', (data) => {
           eventBus.emit('proxy-router-connections-changed', {
             connections: data.connections,

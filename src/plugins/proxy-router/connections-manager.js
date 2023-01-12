@@ -17,15 +17,21 @@ function createConnectionsManager(config, eventBus) {
 
   debug.enabled = enableDebug
 
-  const axios = createAxios({
-    baseURL: proxyRouterUrl,
-  })
-
   let interval
 
-  const getConnections = async () => {
-    const res = await axios('/miners')
-    return res.data?.Miners
+  const getConnections = async (sellerUrl, buyerUrl) => {
+    const getMiners = async (url) => {
+      return (await createAxios({baseURL: url})('/miners')).data?.Miners;
+    }
+
+    if(sellerUrl && buyerUrl) {
+      const sellerMiners = await getMiners(sellerUrl);
+      const buyerMiners = (await getMiners(buyerUrl)).map(x => ({...x, Status: "busy"}));
+
+      return [...sellerMiners, ...buyerMiners]
+    }
+    
+    return await getMiners(proxyRouterUrl)
   }
 
   /**
@@ -39,19 +45,17 @@ function createConnectionsManager(config, eventBus) {
    *
    * @returns {object} The event emitter.
    */
-  function getConnectionsStream(url) {
+  function getConnectionsStream(sellerUrl, buyerUrl) {
     const stream = new EventEmitter()
-
-    if (url) {
-      axios.defaults.baseURL = url
-    }
 
     let isConnected = false
 
     interval = setInterval(async () => {
       try {
         debug('Attempting to get connections')
-        const connections = await getConnections()
+
+        const connections = await getConnections(sellerUrl, buyerUrl)
+
         if (!isConnected) {
           isConnected = true
           debug('emit proxy-router-status-changed')
