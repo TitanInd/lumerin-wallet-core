@@ -21,16 +21,19 @@ function createConnectionsManager(config, eventBus) {
 
   const getConnections = async (sellerUrl, buyerUrl) => {
     const getMiners = async (url) => {
-      return (await createAxios({baseURL: url})('/miners')).data?.Miners;
+      return (await createAxios({ baseURL: url })('/miners')).data?.Miners
     }
 
-    if(sellerUrl && buyerUrl) {
-      const sellerMiners = await getMiners(sellerUrl);
-      const buyerMiners = (await getMiners(buyerUrl)).map(x => ({...x, Status: "busy"}));
+    if (sellerUrl && buyerUrl) {
+      const sellerMiners = await getMiners(sellerUrl)
+      const buyerMiners = (await getMiners(buyerUrl)).map((x) => ({
+        ...x,
+        Status: 'busy',
+      }))
 
       return [...sellerMiners, ...buyerMiners]
     }
-    
+
     return await getMiners(proxyRouterUrl)
   }
 
@@ -74,10 +77,7 @@ function createConnectionsManager(config, eventBus) {
           isConnected,
           syncStatus: 'syncing',
         })
-        stream.emit(
-          'error',
-          err
-        )
+        stream.emit('error', err)
       }
     }, pollingInterval)
 
