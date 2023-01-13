@@ -1,9 +1,9 @@
-'use strict'
+'use strict';
 
 const checkChain = (web3, chainId) =>
   web3.eth.getChainId()
-    .then(id =>
-      id === chainId || Promise.reject(new Error('Wrong chain'))
-    )
+    .then(id => {
+      return id === +chainId || Promise.reject(new Error('Wrong chain'))
+    });
 
-module.exports = checkChain
+module.exports = checkChain;

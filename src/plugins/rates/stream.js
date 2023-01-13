@@ -1,6 +1,6 @@
-'use strict'
+'use strict';
 
-const EventEmitter = require('events')
+const EventEmitter = require('events');
 
 /**
  * Create a "classic" stream that periodically emits the result of a fn.
@@ -10,33 +10,33 @@ const EventEmitter = require('events')
  * @returns {object} The stream instance.
  */
 function createStream (fn, minInterval) {
-  const stream = new EventEmitter()
+  const stream = new EventEmitter();
 
-  let stop = false // Could have been called "flag" but...
+  let stop = false; // Could have been called "flag" but...
 
   const emitTickerValue = () =>
     Promise.resolve()
       .then(fn)
       .then(function (data) {
-        stream.emit('data', data)
+        stream.emit('data', data);
       })
       .catch(function (err) {
-        stream.emit('error', err)
+        stream.emit('error', err);
       })
       .then(function () {
         if (!stop) {
-          setTimeout(emitTickerValue, minInterval)
+          setTimeout(emitTickerValue, minInterval);
         }
-      })
+      });
 
-  emitTickerValue()
+  emitTickerValue();
 
   stream.destroy = function () {
-    stream.removeAllListeners()
-    stop = true
-  }
+    stream.removeAllListeners();
+    stop = true;
+  };
 
-  return stream
+  return stream;
 }
 
-module.exports = createStream
+module.exports = createStream;

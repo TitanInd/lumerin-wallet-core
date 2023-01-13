@@ -7,7 +7,8 @@ const {
 const chai = require('chai')
 const chaiAsPromised = require('chai-as-promised')
 const EventEmitter = require('events')
-const LumerinContracts = require('metronome-contracts')
+// const LumerinContracts = require('metronome-contracts')
+const LumerinContracts = require('lumerin-contracts')
 const proxyquire = require('proxyquire').noPreserveCache().noCallThru()
 const Web3 = require('web3')
 
@@ -17,9 +18,6 @@ const {
 } = require('./utils')
 const MockProvider = require('./utils/mock-provider')
 
-const {
-  getEventDataCreator
-} = require('../src/plugins/lumerin/auction-events')
 const {
   getEventDataCreators
 } = require('../src/plugins/tokens/events')

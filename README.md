@@ -1,6 +1,9 @@
+<h1>
+  <img src="./logo.svg" alt="Lumerin Wallet Core Library" width="20%">
+</h1>
 # lumerin-wallet-core
 
-[![Greenkeeper badge](https://badges.greenkeeper.io/TitanInd/lumerin-wallet-core.svg)](https://greenkeeper.io/)
+<!-- [![Greenkeeper badge](https://badges.greenkeeper.io/TitanInd/lumerin-wallet-core.svg)](https://greenkeeper.io/) -->
 
 Core logic to develop an Ethereum Lumerin wallet.
 
@@ -11,16 +14,16 @@ The core logic has a modular design where each module or plugin can emit events 
 Minimum Node version required is v12, v14 is recommended
 
 ```js
-const createCore = require('lumerin-wallet-core')
+const createCore = require('lumerin-wallet-core');
 
-const core = createCore()
+const core = createCore();
 
-const { api, emitter, events } = core.start()
+const { api, emitter, events } = core.start();
 
 // Listen for `events` on the `emitter`.
 // Call `api` methods
 
-core.stop()
+core.stop();
 ```
 
 ## API
@@ -67,6 +70,23 @@ The following plugins are bundled:
 - `rates`: Provides crypto-to-fiat exchange rates.
 - `tokens`: Provides base ERC20 token functions.
 - `wallet`: Provides base key/account management
+
+# INTERNAL DEPLOYMENT ONLY
+
+TODO - Remove Deployment instructions after ci/cd setup
+
+```
+git tag {new_version}
+npm login --scope=@lumerin
+		 | | | | |
+	    	v v v v v
+npm publish --access=public
+```
+
+Publish Order:
+@lumerin/contracts
+@lumerin/wallet-ui-logic
+@lumerin/wallet-core
 
 ## License
 

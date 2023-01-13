@@ -1,11 +1,11 @@
-'use strict'
+'use strict';
 
 const { CookieJar } = require('tough-cookie');
 const { create: createAxios } = require('axios');
 const { default: axiosCookieJarSupport } = require('axios-cookiejar-support');
 const { isArrayLike } = require('lodash');
 const blockscout = require('./blockscout');
-const debug = require('debug')('met-wallet:core:explorer:indexer');
+const debug = require('debug')('lmr-wallet:core:explorer:indexer');
 const EventEmitter = require('events');
 const io = require('socket.io-client');
 const pRetry = require('p-retry');
@@ -18,7 +18,7 @@ const pRetry = require('p-retry');
  * @returns {object} The exposed indexer API.
  */
 function createIndexer (config, eventBus) {
-  const { chainId, debug: enableDebug, indexerUrl, useNativeCookieJar } = config;
+  const { chainId, debug: enableDebug, indexerUrl, useNativeCookieJar, wsIndexerUrl } = config;
 
   debug.enabled = enableDebug;
 
@@ -28,7 +28,10 @@ function createIndexer (config, eventBus) {
 
   if (useNativeCookieJar) {
     axios = createAxios({
-      baseURL: indexerUrl
+      baseURL: indexerUrl,
+      params: {
+        apikey: '4VPHZ7SNPRRWKE23RBMX1MFUHZYDCAM9A4',
+      }
     });
   } else {
     jar = new CookieJar();
@@ -77,10 +80,10 @@ function createIndexer (config, eventBus) {
     );
 
   const getSocket = () =>
-    io(`${indexerUrl}/v1`, {
+    io(wsIndexerUrl || indexerUrl, {
       autoConnect: false,
       extraHeaders: jar
-        ? { Cookie: jar.getCookiesSync(indexerUrl).join(';') }
+        ? { Cookie: jar.getCookiesSync(wsIndexerUrl || indexerUrl).join(';') }
         : {}
     });
 
@@ -107,9 +110,8 @@ function createIndexer (config, eventBus) {
           eventBus.emit('indexer-connection-status-changed', {
             connected: true
           });
-          socket.emit(
-            'subscribe',
-            { type: 'txs', addresses: [address] },
+          // TODO: Find out why this 'subscribe' event emitter is even here
+          socket.emit('subscribe', { type: 'txs', addresses: [address] },
             function (err) {
               if (err) {
                 stream.emit('error', err)
@@ -126,14 +128,12 @@ function createIndexer (config, eventBus) {
 
           const { type, txid } = data;
 
-          if (type === 'eth') {
-            if (typeof txid !== 'string' || txid.length !== 66) {
-              stream.emit('error', new Error('Indexer sent bad tx event data'));
-              return;
-            }
-
-            stream.emit('data', txid);
+          if (typeof txid !== 'string' || txid.length !== 66) {
+            stream.emit('error', new Error('Indexer sent bad tx event data'));
+            return;
           }
+
+          stream.emit('data', txid);
         });
 
         socket.on('disconnect', function (reason) {

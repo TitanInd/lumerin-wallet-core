@@ -1,4 +1,4 @@
-'use strict'
+'use strict';
 
 const tryParseEventLog = (web3, eventsRegistry) =>
   (log, address) =>
@@ -9,28 +9,28 @@ const tryParseEventLog = (web3, eventsRegistry) =>
         eventName,
         filter,
         metaParser
-      } = registration(address)
+      } = registration(address);
 
-      const eventAbi = abi.find(e => e.type === 'event' && e.name === eventName)
+      const eventAbi = abi.find(e => e.type === 'event' && e.name === eventName);
 
       if (!eventAbi) {
-        return null
+        return null;
       }
 
-      const signature = web3.eth.abi.encodeEventSignature(eventAbi)
+      const signature = web3.eth.abi.encodeEventSignature(eventAbi);
 
-      const data = log.data || (log.raw && log.raw.data)
-      const topics = log.topics || (log.raw && log.raw.topics)
+      const data = log.data || (log.raw && log.raw.data);
+      const topics = log.topics || (log.raw && log.raw.topics);
 
       if (log.address !== contractAddress || topics[0] !== signature) {
-        return null
+        return null;
       }
 
       const returnValues = web3.eth.abi.decodeLog(
         eventAbi.inputs,
         data,
         eventAbi.anonymous ? topics : topics.slice(1)
-      )
+      );
 
       return {
         contractAddress,
@@ -43,6 +43,6 @@ const tryParseEventLog = (web3, eventsRegistry) =>
         })
       }
     })
-      .filter(data => !!data)
+      .filter(data => !!data);
 
-module.exports = tryParseEventLog
+module.exports = tryParseEventLog;

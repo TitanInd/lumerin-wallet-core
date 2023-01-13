@@ -1,95 +1,93 @@
-'use strict'
+'use strict';
 
-const { identity } = require('lodash')
-const debug = require('debug')('met-wallet:core:explorer:syncer')
-const pAll = require('p-all')
-const pWhilst = require('p-whilst')
-const pTimeout = require('p-timeout')
-const noop = require('lodash/noop')
+const { identity } = require('lodash');
+const debug = require('debug')('lmr-wallet:core:explorer:syncer');
+const pAll = require('p-all');
+const pWhilst = require('p-whilst');
+const pTimeout = require('p-timeout');
+const noop = require('lodash/noop');
 
 // eslint-disable-next-line max-params
 function createSyncer (config, eventBus, web3, queue, eventsRegistry, indexer) {
-  debug.enabled = config.debug
+  debug.enabled = config.debug;
 
-  let bestBlock
+  let bestBlock;
   const gotBestBlockPromise = new Promise(function (resolve) {
     eventBus.once('coin-block', function (header) {
-      bestBlock = header.number
-      debug('Got best block', bestBlock)
-      resolve(bestBlock)
-    })
+      bestBlock = header.number;
+      debug('Got best block', bestBlock);
+      resolve(bestBlock);
+    });
   })
 
-  const { getTransactions, getTransactionStream } = indexer
-
   function subscribeCoinTransactions (fromBlock, address) {
-    let shallResync = false
-    let resyncing = false
-    let bestSyncBlock = fromBlock
+    let shallResync = false;
+    let resyncing = false;
+    let bestSyncBlock = fromBlock;
 
-    const { symbol, displayName } = config
+    const { symbol, displayName } = config;
 
-    getTransactionStream(address)
+    indexer.getTransactionStream(address)
       .on('data', queue.addTransaction(address))
       .on('resync', function () {
         debug(`Shall resync ${symbol} transactions on next block`)
-        shallResync = true
+        shallResync = true;
       })
       .on('error', function (err) {
         debug(`Shall resync ${symbol} transactions on next block`)
-        shallResync = true
+        shallResync = true;
         eventBus.emit('wallet-error', {
           inner: err,
           message: `Failed to sync ${displayName} transactions`,
           meta: { plugin: 'explorer' }
-        })
-      })
+        });
+      });
 
     // Check if shall resync when a new block is seen, as that is the
     // indication of proper reconnection to the Ethereum node.
     eventBus.on('coin-block', function ({ number }) {
       if (shallResync && !resyncing) {
-        resyncing = true
-        shallResync = false
+        resyncing = true;
+        shallResync = false;
         // eslint-disable-next-line promise/catch-or-return
-        getTransactions(bestSyncBlock, number, address)
+        indexer.getTransactions(bestSyncBlock, number, address)
           .then(function (transactions) {
-            const { length } = transactions
+            const { length } = transactions;
             debug(`${length} past ${symbol} transactions retrieved`)
-            transactions.forEach(queue.addTransaction(address))
-            bestSyncBlock = number
+            transactions.forEach(queue.addTransaction(address));
+            bestSyncBlock = number;
           })
           .catch(function (err) {
-            shallResync = true
+            shallResync = true;
             eventBus.emit('wallet-error', {
               inner: err,
               message: 'Failed to resync transactions',
               meta: { plugin: 'explorer' }
-            })
+            });
           })
           .then(function () {
-            resyncing = false
+            resyncing = false;
           })
       } else if (!resyncing) {
-        bestSyncBlock = number
-        bestBlock = number
+        bestSyncBlock = number;
+        bestBlock = number;
       }
     })
   }
 
   function getPastCoinTransactions (fromBlock, toBlock, address) {
-    const { symbol } = config
+    const { symbol } = config;
 
-    return getTransactions(fromBlock, toBlock, address)
+    return indexer.getTransactions(fromBlock, toBlock, address)
       .then(function (transactions) {
-        debug(`${transactions.length} past ${symbol} transactions retrieved`)
+        debug(`${transactions.length} past ${symbol} transactions retrieved`);
         return Promise.all(transactions.map(queue.addTransaction(address)))
-          .then(() => toBlock)
-      })
+          .then(() => toBlock);
+      });
   }
 
   function getPastEventsWithChunks (options) {
-    const CHUNK_SIZE = 4000
+    const CHUNK_SIZE = 4000;
     const {
       address,
       contract,
@@ -100,25 +98,25 @@ function createSyncer (config, eventBus, web3, queue, eventsRegistry, indexer) {
       metaParser,
       minBlock = 0,
       onProgress = noop
-    } = options
-    const baseFromBlock = Math.max(fromBlock, minBlock)
-    debug('Retrieving from %s to %s in chunks', baseFromBlock, toBlock)
-    let chunkIndex = 0
-    const getNewFromBlock = index => baseFromBlock + CHUNK_SIZE * index
+    } = options;
+    const baseFromBlock = Math.max(fromBlock, minBlock);
+    debug('Retrieving from %s to %s in chunks', baseFromBlock, toBlock);
+    let chunkIndex = 0;
+    const getNewFromBlock = index => baseFromBlock + CHUNK_SIZE * index;
     const getNewToBlock = function (index) {
-      const istLastRequest = baseFromBlock + CHUNK_SIZE * (index + 1) === toBlock
-      return Math.max(Math.min(baseFromBlock + CHUNK_SIZE * (index + 1) - (istLastRequest ? 0 : 1), toBlock), minBlock)
-    }
+      const istLastRequest = baseFromBlock + CHUNK_SIZE * (index + 1) === toBlock;
+      return Math.max(Math.min(baseFromBlock + CHUNK_SIZE * (index + 1) - (istLastRequest ? 0 : 1), toBlock), minBlock);
+    };
     return pWhilst(
       function () {
-        const newFromBlock = getNewFromBlock(chunkIndex)
-        const newToBlock = getNewToBlock(chunkIndex)
-        return newFromBlock < newToBlock
+        const newFromBlock = getNewFromBlock(chunkIndex);
+        const newToBlock = getNewToBlock(chunkIndex);
+        return newFromBlock < newToBlock;
       },
       function () {
-        const newFromBlock = getNewFromBlock(chunkIndex)
-        const newToBlock = getNewToBlock(chunkIndex)
-        debug('Retrieving from %s to %s for event %s', newFromBlock, newToBlock, eventName)
+        const newFromBlock = getNewFromBlock(chunkIndex);
+        const newToBlock = getNewToBlock(chunkIndex);
+        debug('Retrieving from %s to %s for event %s', newFromBlock, newToBlock, eventName);
         return pTimeout(
           contract
             .getPastEvents(eventName, {
@@ -130,17 +128,17 @@ function createSyncer (config, eventBus, web3, queue, eventsRegistry, indexer) {
               debug(`${events.length} past ${eventName} events retrieved`)
               return Promise.all(
                 events.map(queue.addEvent(address, metaParser))
-              )
+              );
             })
             .then(function () {
-              debug('Retrieved from %s to %s for event %s', newFromBlock, newToBlock, eventName)
-              chunkIndex++
-              return onProgress(newToBlock)
+              debug('Retrieved from %s to %s for event %s', newFromBlock, newToBlock, eventName);
+              chunkIndex++;
+              return onProgress(newToBlock);
             })
           ,
           1000 * 60 * 2
-        )
-      })
+        );
+      });
   }
 
   const getPastEvents = (fromBlock, toBlock, address, onProgress) =>
@@ -155,14 +153,14 @@ function createSyncer (config, eventBus, web3, queue, eventsRegistry, indexer) {
             filter,
             metaParser,
             minBlock = 0
-          } = registration(address)
+          } = registration(address);
 
-          const contract = new web3.eth.Contract(abi, contractAddress)
+          const contract = new web3.eth.Contract(abi, contractAddress);
 
           // Ignore missing events
           if (!contract.events[eventName]) {
-            debug(`Could not get past events for ${eventName}`)
-            return null
+            debug(`Could not get past events for ${eventName}`);
+            return null;
           }
           return () =>
             getPastEventsWithChunks({
@@ -179,15 +177,15 @@ function createSyncer (config, eventBus, web3, queue, eventsRegistry, indexer) {
         })
         .filter(identity),
       { concurrency: 3 }
-    )
+    );
 
-  const subscriptions = []
+  const subscriptions = [];
 
   function subscribeEvents (fromBlock, address) {
     eventsRegistry.getAll().forEach(function (registration) {
-      let shallResync = false
-      let resyncing = false
-      let bestSyncBlock = fromBlock
+      let shallResync = false;
+      let resyncing = false;
+      let bestSyncBlock = fromBlock;
 
       const {
         contractAddress,
@@ -195,14 +193,14 @@ function createSyncer (config, eventBus, web3, queue, eventsRegistry, indexer) {
         eventName,
         filter,
         metaParser
-      } = registration(address)
+      } = registration(address);
 
-      const contract = new web3.eth.Contract(abi, contractAddress)
+      const contract = new web3.eth.Contract(abi, contractAddress);
 
       // Ignore missing events
       if (!contract.events[eventName]) {
-        debug('Could not subscribe: event not found', eventName)
-        return
+        debug('Could not subscribe: event not found', eventName);
+        return;
       }
 
       // Get past events and subscribe to incoming events
@@ -210,21 +208,21 @@ function createSyncer (config, eventBus, web3, queue, eventsRegistry, indexer) {
         .on('data', queue.addEvent(address, metaParser))
         .on('changed', queue.addEvent(address, metaParser))
         .on('error', function (err) {
-          debug('Shall resync events on next block')
-          shallResync = true
+          debug('Shall resync events on next block');
+          shallResync = true;
           eventBus.emit('wallet-error', {
             inner: err,
             message: `Subscription to event ${eventName} failed`,
             meta: { plugin: 'explorer' }
           })
-        })
-      subscriptions.push(emitter)
+        });
+      subscriptions.push(emitter);
 
       // Resync on new block or save it as best sync block
       eventBus.on('coin-block', function ({ number }) {
         if (shallResync && !resyncing) {
-          resyncing = true
-          shallResync = false
+          resyncing = true;
+          shallResync = false;
           // eslint-disable-next-line promise/catch-or-return
           getPastEventsWithChunks({
             address,
@@ -245,52 +243,53 @@ function createSyncer (config, eventBus, web3, queue, eventsRegistry, indexer) {
             })
             .then(function () {
               resyncing = false
-            })
+            });
         } else if (!resyncing) {
-          bestSyncBlock = number
-          bestBlock = number
+          bestSyncBlock = number;
+          bestBlock = number;
         }
-      })
-    })
+      });
+    });
   }
 
   const syncTransactions = (fromBlock, address, onProgress) =>
     gotBestBlockPromise
       .then(function () {
-        debug('Syncing', fromBlock, bestBlock)
-        subscribeCoinTransactions(bestBlock, address)
-        subscribeEvents(bestBlock, address)
+        debug('Syncing', fromBlock, bestBlock);
+        subscribeCoinTransactions(bestBlock, address);
+        subscribeEvents(bestBlock, address);
         return Promise.all([
           getPastCoinTransactions(fromBlock, bestBlock, address),
           getPastEvents(fromBlock, bestBlock, address, onProgress)
-        ])
+        ]);
       })
       .then(function ([syncedBlock]) {
-        bestBlock = syncedBlock
-        return syncedBlock
-      })
+        bestBlock = syncedBlock;
+        return syncedBlock;
+      });
 
   const refreshAllTransactions = address =>
     gotBestBlockPromise
-      .then(() =>
-        Promise.all([
+      .then(() => {
+        return Promise.all([
           getPastCoinTransactions(0, bestBlock, address),
           getPastEvents(0, bestBlock, address, function (syncedBlock) { bestBlock = syncedBlock })
         ])
           .then(function ([syncedBlock]) {
-            bestBlock = syncedBlock
-            return syncedBlock
+            bestBlock = syncedBlock;
+
+            return syncedBlock;
           })
-      )
+        });
 
   function stop () {
     subscriptions.forEach(function (subscription) {
       subscription.unsubscribe(function (err) {
         if (err) {
-          debug('Could not unsubscribe from event', err.message)
+          debug('Could not unsubscribe from event', err.message);
         }
-      })
-    })
+      });
+    });
   }
 
   return {
@@ -299,7 +298,7 @@ function createSyncer (config, eventBus, web3, queue, eventsRegistry, indexer) {
     refreshAllTransactions,
     stop,
     syncTransactions
-  }
+  };
 }
 
-module.exports = createSyncer
+module.exports = createSyncer;

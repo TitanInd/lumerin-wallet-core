@@ -1,12 +1,12 @@
-'use strict'
+'use strict';
 
 function createEventsRegistry () {
-  const registeredEvents = []
+  const registeredEvents = [];
 
   return {
     getAll: () => registeredEvents,
     register: registration => registeredEvents.push(registration)
-  }
+  };
 }
 
-module.exports = createEventsRegistry
+module.exports = createEventsRegistry;

@@ -25,7 +25,8 @@ const MockLumerinContracts = function () {
 }
 
 const porterApi = proxyquire('../src/plugins/lumerin/porter-api', {
-  'metronome-contracts': MockLumerinContracts
+  // 'metronome-contracts': MockLumerinContracts
+  'lumerin-contracts': MockLumerinContracts
 })
 
 const getMerkleRoot = porterApi.getMerkleRoot({}, 'chain')

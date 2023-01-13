@@ -1,7 +1,8 @@
 'use strict'
 
 const { utils: { hexToUtf8 } } = require('web3')
-const LumerinContracts = require('metronome-contracts')
+// const LumerinContracts = require('metronome-contracts')
+// const LumerinContracts = require('@lumerin/contracts')
 
 const exportMetaParser = ({ returnValues }) => ({
   lumerin: {
@@ -17,7 +18,7 @@ const exportMetaParser = ({ returnValues }) => ({
       fee: returnValues.fee,
       genesisTime: returnValues.genesisTime,
       previousBurnHash: returnValues.prevBurnHash,
-      supply: returnValues.supplyOnAllChains,
+      supply: returnValues.supplyOnChain,
       to: returnValues.destinationRecipientAddr,
       value: returnValues.amountToBurn
     }
@@ -48,51 +49,51 @@ const importMetaParser = ({ returnValues }) => ({
   }
 })
 
-function getEventDataCreator (chain) {
-  const {
-    abi,
-    address: contractAddress,
-    birthblock: minBlock
-  } = LumerinContracts[chain].TokenPorter
+// function getEventDataCreator (chain) {
+//   const {
+//     abi,
+//     address: contractAddress,
+//     birthblock: minBlock
+//   } = LumerinContracts[chain].TokenPorter
 
-  return [
-    address => ({
-      contractAddress,
-      abi,
-      eventName: 'LogExportReceipt',
-      filter: { exporter: address },
-      metaParser: exportMetaParser,
-      minBlock
-    }),
-    address => ({
-      contractAddress,
-      abi,
-      eventName: 'LogExportReceipt',
-      filter: { destinationRecipientAddr: address },
-      metaParser: exportMetaParser,
-      minBlock
-    }),
-    address => ({
-      contractAddress,
-      abi,
-      eventName: 'LogImportRequest',
-      filter: { destinationRecipientAddr: address },
-      metaParser: importRequestMetaParser,
-      minBlock
-    }),
-    address => ({
-      contractAddress,
-      abi,
-      eventName: 'LogImport',
-      filter: { destinationRecipientAddr: address },
-      metaParser: importMetaParser,
-      minBlock
-    })
-  ]
-}
+//   return [
+//     address => ({
+//       contractAddress,
+//       abi,
+//       eventName: 'LogExportReceipt',
+//       filter: { exporter: address },
+//       metaParser: exportMetaParser,
+//       minBlock
+//     }),
+//     address => ({
+//       contractAddress,
+//       abi,
+//       eventName: 'LogExportReceipt',
+//       filter: { destinationRecipientAddr: address },
+//       metaParser: exportMetaParser,
+//       minBlock
+//     }),
+//     address => ({
+//       contractAddress,
+//       abi,
+//       eventName: 'LogImportRequest',
+//       filter: { destinationRecipientAddr: address },
+//       metaParser: importRequestMetaParser,
+//       minBlock
+//     }),
+//     address => ({
+//       contractAddress,
+//       abi,
+//       eventName: 'LogImport',
+//       filter: { destinationRecipientAddr: address },
+//       metaParser: importMetaParser,
+//       minBlock
+//     })
+//   ]
+// }
 
 module.exports = {
-  getEventDataCreator,
+  // getEventDataCreator,
   exportMetaParser,
   importMetaParser,
   importRequestMetaParser
