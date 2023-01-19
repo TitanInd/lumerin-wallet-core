@@ -1,19 +1,18 @@
 const axios = require('axios').default
 
-const getLmrRate = () =>
+const getRate = () =>
   axios
     .get(`https://api.coingecko.com/api/v3/simple/price`, {
       params: {
-        ids: 'lumerin',
+        ids: 'ethereum,lumerin',
         vs_currencies: 'usd',
       },
     })
-    .then((response) =>
-      response.data &&
-      response.data.lumerin &&
-      typeof response.data.lumerin.usd === 'number'
-        ? Number.parseFloat(response.data.lumerin.usd)
-        : null
-    )
+    .then((response) => {
+      return {
+        LMR: response?.data?.lumerin?.usd || null,
+        ETH: response?.data?.ethereum?.usd || null,
+      }
+    })
 
-module.exports = { getLmrRate }
+module.exports = { getRate }

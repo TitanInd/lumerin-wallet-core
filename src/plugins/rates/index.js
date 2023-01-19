@@ -1,11 +1,7 @@
 'use strict'
 
-const axios = require('axios').default;
-const { getExchangeRate } = require('safe-exchange-rate')
 const debug = require('debug')('lmr-wallet:core:rates')
-
-const { getLmrRate } = require('./getLmrRate');
-
+const { getRate } = require('./getLmrRate')
 const createStream = require('./stream')
 
 /**
@@ -29,27 +25,20 @@ function createPlugin() {
 
     const { ratesUpdateMs, symbol } = config
 
-    const getRate = () =>
-      {
-        return symbol === 'LMR' ? getLmrRate() : getExchangeRate(`${symbol}:USD`).then(function (rate) {
-          if (typeof rate !== 'number') {
-            throw new Error(`No exchange rate retrieved for ${symbol}`)
-          }
-          return rate
-        })
-      }
-
     dataStream = createStream(getRate, ratesUpdateMs)
 
     dataStream.on('data', function (price) {
-      debug('Coin price received')
-
-      const priceData = { token: symbol, currency: 'USD', price }
-      eventBus.emit('coin-price-updated', priceData)
+      Object.entries(price).forEach(([token, price]) =>
+        eventBus.emit('coin-price-updated', {
+          token: token,
+          currency: 'USD',
+          price: price,
+        })
+      )
     })
 
     dataStream.on('error', function (err) {
-      debug('Data stream error')
+      debug('coin price error', err)
 
       eventBus.emit('wallet-error', {
         inner: err,
