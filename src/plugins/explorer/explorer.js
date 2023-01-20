@@ -35,11 +35,11 @@ class Explorer {
   async getTransactions(from, to, address) {
     const lmrTransactions = await pRetry(
       () => this.getLmrTransactions(from, to, address),
-      { minTimeout: 5000 }
+      { minTimeout: 5000, retries: 5 }
     )
     const ethTransactions = await pRetry(
       () => this.getEthTransactions(from, to, address),
-      { minTimeout: 5000 }
+      { minTimeout: 5000, retries: 5 }
     )
 
     return [...lmrTransactions, ...ethTransactions]
