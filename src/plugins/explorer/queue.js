@@ -40,7 +40,7 @@ function createQueue(config, eventBus, web3) {
 
   function decodeInput({ transaction, receipt, meta }) {
     try {
-      if (typeof transaction.input === 'string') {
+      if (typeof transaction.input === 'string' && transaction.input !== '0x') {
         const logs = abiDecoder.decodeLogs(receipt.logs)
         if (!logs) {
           return null

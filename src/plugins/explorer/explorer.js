@@ -2,9 +2,10 @@
 
 const axios = require('axios')
 const EventEmitter = require('events')
+const pRetry = require('p-retry')
 
 const createExplorer = (chainId, web3, lumerin) => {
-  let baseURL;
+  let baseURL
   switch (chainId.toString()) {
     case 'mainnet':
     case '1':
@@ -19,19 +20,32 @@ const createExplorer = (chainId, web3, lumerin) => {
   }
   const api = axios.create({
     baseURL,
-  });
+  })
 
-  return new Explorer({ api, lumerin, web3 });
+  return new Explorer({ api, lumerin, web3 })
 }
 
 class Explorer {
   constructor({ api, lumerin, web3 }) {
-    this.api = api;
-    this.lumerin = lumerin;
-    this.web3 = web3;
+    this.api = api
+    this.lumerin = lumerin
+    this.web3 = web3
   }
 
   async getTransactions(from, to, address) {
+    const lmrTransactions = await pRetry(
+      () => this.getLmrTransactions(from, to, address),
+      { minTimeout: 5000, retries: 5 }
+    )
+    const ethTransactions = await pRetry(
+      () => this.getEthTransactions(from, to, address),
+      { minTimeout: 5000, retries: 5 }
+    )
+
+    return [...lmrTransactions, ...ethTransactions]
+  }
+
+  async getLmrTransactions(from, to, address) {
     const params = {
       module: 'account',
       action: 'tokentx',
@@ -43,6 +57,25 @@ class Explorer {
     }
 
     const { data } = await this.api.get('/', { params })
+    const { status, message, result } = data
+    if (status !== '1' && message !== 'No transactions found') {
+      throw new Error(result)
+    }
+    return result.map((transaction) => transaction.hash)
+  }
+
+  async getEthTransactions(from, to, address) {
+    const params = {
+      module: 'account',
+      action: 'txlist',
+      sort: 'desc',
+      startBlock: from,
+      endBlock: to,
+      address,
+    }
+
+    const { data } = await this.api.get('/', { params })
+
     const { status, message, result } = data
     if (status !== '1' && message !== 'No transactions found') {
       throw new Error(result)
@@ -76,6 +109,11 @@ class Explorer {
       .on('error', (err) => {
         stream.emit('error', err)
       })
+
+    setInterval(() => {
+      stream.emit('resync')
+    }, 60000)
+
     return stream
   }
 
