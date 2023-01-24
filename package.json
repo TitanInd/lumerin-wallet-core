@@ -2,8 +2,8 @@
   "name": "@lumerin/wallet-core",
   "version": "1.0.20",
   "author": {
-    "name": "Kodee McIntosh",
-    "email": "kodee@lumerin.io",
+    "name": "Lumerin",
+    "email": "developer@lumerin.io",
     "url": "https://lumerin.io"
   },
   "description": "Core logic to develop a Lumerin wallet",
