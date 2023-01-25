@@ -12,7 +12,7 @@ const EventEmitter = require('events')
  * @returns {object} The exposed indexer API.
  */
 function createConnectionsManager(config, eventBus) {
-  const { debug: enableDebug, proxyRouterUrl } = config
+  const { debug: enableDebug, proxyRouterUrl, ipLookupUrl } = config
   const pollingInterval = 5000
 
   debug.enabled = enableDebug
@@ -93,9 +93,24 @@ function createConnectionsManager(config, eventBus) {
     }
   }
 
+  /**
+   * 
+   * @returns {string|null}
+   */
+  const getLocalIp = async () => {
+    const baseURL = ipLookupUrl || 'https://ifconfig.io/ip';
+    const { data } = await createAxios({ baseURL })();
+    const stringData = typeof data === 'string' ? data : JSON.stringify(data);
+
+    const ipRegex = /\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b/;
+    const [ip] = stringData.match(ipRegex);
+    return ip;
+  }
+
   return {
     disconnect,
     getConnectionsStream,
+    getLocalIp,
   }
 }
 
