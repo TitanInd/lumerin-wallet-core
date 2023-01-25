@@ -32,6 +32,7 @@ function createPlugin() {
     return {
       api: {
         refreshConnectionsStream: refreshConnectionsStream,
+        getLocalIp: connectionManager.getLocalIp,
       },
       events: [
         'proxy-router-connections-changed',
