@@ -1,7 +1,7 @@
 'use strict'
 
 const debug = require('debug')('lmr-wallet:core:rates')
-const { getRate } = require('./getLmrRate')
+const { getRate } = require('./rate')
 const createStream = require('./stream')
 
 /**
