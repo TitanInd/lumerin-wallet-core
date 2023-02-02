@@ -20,9 +20,20 @@ const createExplorer = (chainId, web3, lumerin) => {
   }
   const api = axios.create({
     baseURL,
-    headers: { 
-      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.102 Safari/537.36'
-    }
+    headers: {
+      accept: '*/*',
+      'accept-language': 'en-US',
+      'content-type': 'application/json',
+      'sec-ch-ua': '" Not A;Brand";v="99", "Chromium";v="100"',
+      'sec-ch-ua-mobile': '?0',
+      'sec-ch-ua-platform': 'Windows',
+      'sec-fetch-dest': 'empty',
+      'sec-fetch-mode': 'cors',
+      'sec-fetch-site': 'cross-site',
+      'user-agent':
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) lumerin-wallet-desktop Chrome/100.0.4896.160 Electron/18.3.15 Safari/537.36',
+    },
+    responseType: 'json',
   })
 
   return new Explorer({ api, lumerin, web3 })
@@ -59,7 +70,13 @@ class Explorer {
       address,
     }
 
-    const { data } = await this.api.get('/', { params })
+    const { data, request } = await this.api.get('/', { params })
+    console.log("🚀 ~ file: explorer.js:75 ~ Explorer ~ getLmrTransactions ~ data", data)
+    // console.log(
+    //   '🚀 ~ file: explorer.js:64 ~ Explorer ~ getLmrTransactions ~ request',
+    //   request
+    // )
+
     const { status, message, result } = data
     if (status !== '1' && message !== 'No transactions found') {
       throw new Error(result)
