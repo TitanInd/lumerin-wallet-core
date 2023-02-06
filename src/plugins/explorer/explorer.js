@@ -4,7 +4,6 @@ const EventEmitter = require('events')
 const pRetry = require('p-retry');
 const { createBlockscoutApi } = require('./api/blockscout-api');
 const { createEtherscanApi } = require('./api/etherscan-api');
-const debug = require('debug')('lmr-wallet:explorer:explorer');
 
 const createExplorer = (chainId, web3, lumerin) => {
   const etherscanApi = createEtherscanApi(chainId)
@@ -81,20 +80,22 @@ class Explorer {
    * Helper method that attempts to make a function call for multiple providers
    * @param {string} methodName 
    * @param  {...any} args 
-   * @returns 
+   * @returns {Promise<any>}
    */
   async invoke(methodName, ...args){
-    let lastErr
+    return await pRetry(async () => {
+      let lastErr
 
-    for (const api of this.apis){
-      try {
-        return await pRetry(()=>api[methodName](...args), { minTimeout: 5000, retries: 5 })
-      } catch(err){
-        lastErr = err
-        debug(`Explorer error, retrying with different provider: ${err}`)
+      for (const api of this.apis){
+        try {
+          return await api[methodName](...args)
+        } catch(err){
+          lastErr = err
+        }
       }
-    }
-    throw new Error(`Explorer error, tried all of the providers without success, ${lastErr}`)
+
+      throw new Error(`Explorer error, tried all of the providers without success, ${lastErr}`)
+    }, { minTimeout: 5000, retries: 5 })
   }
 }
 
