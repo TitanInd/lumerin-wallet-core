@@ -61,6 +61,7 @@ async function _loadContractInstance(web3, implementationAddress) {
       'Error when trying to load Contracts by address in the Implementation contract: ',
       err
     )
+    throw err;
   }
 }
 
