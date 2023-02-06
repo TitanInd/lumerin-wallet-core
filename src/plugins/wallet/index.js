@@ -45,7 +45,7 @@ function createPlugin () {
     return {
       api: {
         createAddress: hdkey.getAddress,
-        createPrivateKey: hdkey.getPrivateKey,
+        createPrivateKey: hdkey.getPrivateKeyStringPrefixed,
         getAddressAndPrivateKey: hdkey.getAddressAndPrivateKey,
         getGasLimit: api.estimateGas(web3),
         getGasPrice: api.getGasPrice(web3),
