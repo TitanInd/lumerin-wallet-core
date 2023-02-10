@@ -38,47 +38,67 @@ function createQueue(config, eventBus, web3) {
     return { transaction, receipt, meta }
   }
 
-  function decodeInput({ transaction, receipt, meta }) {
-    try {
-      if (typeof transaction.input === 'string' && transaction.input !== '0x') {
-        const logs = abiDecoder.decodeLogs(receipt.logs)
-        if (!logs) {
-          return null
-        }
+  const decodeInput =
+    (address) =>
+    ({ transaction, receipt, meta }) => {
+      try {
+        if (
+          typeof transaction.input === 'string' &&
+          transaction.input !== '0x'
+        ) {
+          const logs = abiDecoder.decodeLogs(receipt.logs)
+          if (!logs) {
+            return null
+          }
 
-        const transfer = logs.find((l) => l.name === 'Transfer')
-        if (!transfer) {
-          return null
-        }
-        const { events } = transfer
+          const transfer = logs.find(
+            (l) =>
+              l.name === 'Transfer' &&
+              l.events.find(
+                (e) =>
+                  (e.name === 'to' && e.value === address) ||
+                  (e.name === 'from' && e.value === address)
+              )
+          )
+          if (!transfer) {
+            return null
+          }
+          const { events } = transfer
 
-        const valueParam = events.find((p) => p.name === 'value')
-        if (valueParam === undefined) {
-          return null
-        }
-        const toParam = events.find((p) => p.name === 'to')
-        if (toParam === undefined) {
-          return null
-        }
+          const valueParam = events.find((p) => p.name === 'value')
+          if (valueParam === undefined) {
+            return null
+          }
 
-        transaction.input = {
-          to: toParam.value,
-          amount: valueParam.value,
+          const toParam = events.find((p) => p.name === 'to')
+          if (toParam === undefined) {
+            return null
+          }
+
+          const fromParam = events.find((p) => p.name === 'from')
+          if (fromParam === undefined) {
+            return null
+          }
+
+          transaction.input = {
+            to: toParam.value,
+            amount: valueParam.value,
+            from: fromParam.value,
+          }
+          return { transaction, receipt, meta }
         }
         return { transaction, receipt, meta }
+      } catch (err) {
+        return null
       }
-      return { transaction, receipt, meta }
-    } catch (err) {
-      return null
     }
-  }
 
   function emitTransactions(address, transactions) {
     eventBus.emit('wallet-transactions-changed', {
       transactions: transactions
         .filter((data) => !!data.transaction)
         .map(fillInStatus)
-        .map(decodeInput)
+        .map(decodeInput(address.toLowerCase()))
         .filter((i) => !!i),
     })
 
@@ -86,7 +106,7 @@ function createQueue(config, eventBus, web3) {
       transactions: transactions
         .filter((data) => !!data.transaction)
         .map(fillInStatus)
-        .map(decodeInput)
+        .map(decodeInput(address.toLowerCase()))
         .filter((i) => !!i),
     })
 
