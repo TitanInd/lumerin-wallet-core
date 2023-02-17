@@ -2,6 +2,7 @@
 
 const debug = require('debug')('lmr-wallet:core:contracts:api')
 const { CloneFactory, Implementation, Lumerin } = require('contracts-js')
+const ethereumWallet = require('ethereumjs-wallet')
 
 /**
  * @param {CloneFactory} cloneFactory
@@ -113,6 +114,9 @@ function createContract(web3, cloneFactory, plugins) {
 
     web3.eth.accounts.wallet.create(0).add(account)
 
+    let tempWallet = new ethereumWallet(privateKey)
+    let pubKey = tempWallet.pubKey()
+    
 
     return web3.eth
       .getTransactionCount(sellerAddress, 'pending')
@@ -125,7 +129,7 @@ function createContract(web3, cloneFactory, plugins) {
               speed,
               duration,
               validatorAddress,
-              ''
+              pubKey
             )
             .send(
               {
