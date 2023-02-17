@@ -1,6 +1,7 @@
 'use strict'
 
 const debug = require('debug')('lmr-wallet:core:contracts:api')
+const encrypt = require('ecies-geth')
 const { CloneFactory, Implementation, Lumerin } = require('contracts-js')
 const ethereumWallet = require('ethereumjs-wallet')
 
@@ -211,6 +212,14 @@ function purchaseContract(web3, cloneFactory, lumerin) {
     const { walletId, contractId, url, privateKey, price } = params;
     const sendOptions = { from: walletId, gas: 1_000_000}
 
+    //getting pubkey from contract to be purchased
+    const implementationContract = Implementation(web3, contractId)
+    let pubKey
+    await implementationContract.methods.pubKey().call().then(r => pubKey = r)
+
+    //encrypting plaintext url parameter
+    let ciphertext = await encrypt(Buffer.from(pubKey, 'hex'), Buffer.from(msg));
+
     const account = web3.eth.accounts.privateKeyToAccount(privateKey);
     web3.eth.accounts.wallet.create(0).add(account);
     
@@ -219,7 +228,7 @@ function purchaseContract(web3, cloneFactory, lumerin) {
       .send(sendOptions);
 
     const purchaseResult = await cloneFactory.methods
-      .setPurchaseRentalContract(contractId, url)
+      .setPurchaseRentalContract(contractId, ciphertext.toString('hex'))
       .send(sendOptions);
 
     debug(`Finished puchase transaction`, purchaseResult);
