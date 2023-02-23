@@ -31,13 +31,6 @@ function createCore () {
     eventBus = new EventEmitter();
 
     debug.enabled = config.debug;
-    if (config.debug) {
-      const emit = eventBus.emit.bind(eventBus);
-      eventBus.emit = function (eventName, ...args) {
-        debug('<<--', eventName, ...args);
-        emit(eventName, ...args);
-      }
-    }
 
     debug('Wallet core starting', config);
 

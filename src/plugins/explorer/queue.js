@@ -168,8 +168,6 @@ function createQueue(config, eventBus, web3) {
 
   const addTransaction = (address, meta) =>
     function (hash) {
-      debug('Queueing transaction', hash)
-
       return new Promise(function (resolve, reject) {
         const event = {
           address,

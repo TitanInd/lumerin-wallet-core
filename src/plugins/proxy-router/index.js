@@ -33,6 +33,8 @@ function createPlugin() {
       api: {
         refreshConnectionsStream: refreshConnectionsStream,
         getLocalIp: connectionManager.getLocalIp,
+        healthCheck: connectionManager.healthCheck,
+        kill: connectionManager.kill
       },
       events: [
         'proxy-router-connections-changed',
