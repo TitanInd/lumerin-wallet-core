@@ -31,7 +31,6 @@ function createPlugin () {
 
       return getActiveContracts(web3, lumerin, cloneFactory)
         .then((contracts) => {
-          console.log('----------------------------------------   ', { contracts })
           eventBus.emit('contracts-scan-finished', {
             actives: contracts
           });

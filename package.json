@@ -1,6 +1,6 @@
 {
   "name": "@lumerin/wallet-core",
-  "version": "1.0.27",
+  "version": "1.0.28",
   "author": {
     "name": "Lumerin",
     "email": "developer@lumerin.io",
@@ -25,7 +25,8 @@
     "check": "dependency-check . --no-dev --ignore-module patch-package --ignore-module websocket-reconnector",
     "lint": "",
     "prepare": "patch-package && husky install",
-    "prepublishOnly": "npm run check"
+    "prepublishOnly": "npm run check",
+    "kill-proxy": "kill-port 3333 && kill-port 3334"
   },
   "dependencies": {
     "@azure/abort-controller": "^1.1.0",
@@ -38,6 +39,7 @@
     "debug": "4.1.1",
     "ethereumjs-wallet": "1.0.1",
     "ip": "^1.1.8",
+    "kill-port-process": "^3.1.0",
     "lodash": "4.17.15",
     "p-all": "3.0.0",
     "p-retry": "4.6.0",

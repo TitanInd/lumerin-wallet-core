@@ -3,6 +3,7 @@
 const { create: createAxios } = require('axios')
 const debug = require('debug')('lmr-wallet:core:explorer:connection-manager')
 const EventEmitter = require('events')
+const { killPortProcess } = require('kill-port-process');
 
 /**
  * Create an object to interact with the Lumerin indexer.
@@ -37,6 +38,14 @@ function createConnectionsManager(config, eventBus) {
     return await getMiners(proxyRouterUrl)
   }
 
+  const healthCheck = async (url) => {
+    return createAxios({ baseURL: url })('/healthcheck');
+  }
+
+  const kill = async (port) => {
+    return killPortProcess(port);
+  }
+
   /**
    * Create a stream that will emit an event each time a connection is published to the proxy-router
    *
@@ -53,6 +62,7 @@ function createConnectionsManager(config, eventBus) {
 
     let isConnected = false
 
+    disconnect()
     interval = setInterval(async () => {
       try {
         debug('Attempting to get connections')
@@ -111,6 +121,8 @@ function createConnectionsManager(config, eventBus) {
     disconnect,
     getConnectionsStream,
     getLocalIp,
+    healthCheck,
+    kill,
   }
 }
 
