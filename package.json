@@ -34,7 +34,7 @@
     "axios": "0.21.1",
     "axios-cookiejar-support": "1.0.1",
     "cheerio": "^1.0.0-rc.12",
-    "contracts-js": "github:Lumerin-protocol/contracts-js#v0.0.13",
+    "contracts-js": "github:Lumerin-protocol/contracts-js#v0.0.18",
     "debug": "4.1.1",
     "ethereumjs-wallet": "1.0.1",
     "ecies-geth": "^1.6.2",
