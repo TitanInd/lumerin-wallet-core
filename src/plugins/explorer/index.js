@@ -63,7 +63,6 @@ function createPlugin () {
         tryParseEventLog: tryParseEventLog(web3, eventsRegistry)
       },
       events: [
-        'wallet-transactions-changed',
         'token-transactions-changed',
         'wallet-state-changed',
         'coin-block',
