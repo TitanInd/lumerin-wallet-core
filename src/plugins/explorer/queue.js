@@ -94,14 +94,6 @@ function createQueue(config, eventBus, web3) {
     }
 
   function emitTransactions(address, transactions) {
-    eventBus.emit('wallet-transactions-changed', {
-      transactions: transactions
-        .filter((data) => !!data.transaction)
-        .map(fillInStatus)
-        .map(decodeInput(address.toLowerCase()))
-        .filter((i) => !!i),
-    })
-
     eventBus.emit('token-transactions-changed', {
       transactions: transactions
         .filter((data) => !!data.transaction)
