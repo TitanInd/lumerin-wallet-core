@@ -3,7 +3,7 @@
 const { create: createAxios } = require('axios')
 const debug = require('debug')('lmr-wallet:core:explorer:connection-manager')
 const EventEmitter = require('events')
-const { killPortProcess } = require('kill-port-process');
+const killer = require('cross-port-killer');
 
 /**
  * Create an object to interact with the Lumerin indexer.
@@ -42,8 +42,8 @@ function createConnectionsManager(config, eventBus) {
     return createAxios({ baseURL: url })('/healthcheck');
   }
 
-  const kill = async (port) => {
-    return killPortProcess(port);
+  const kill = (port) => {
+    return killer.kill(port);
   }
 
   /**
