@@ -1,3 +1,4 @@
+//@ts-check
 'use strict'
 
 const debug = require('debug')('lmr-wallet:core:contracts:api')
@@ -111,12 +112,10 @@ function createContract(web3, cloneFactory, plugins) {
       privateKey,
     } = params
 
-    const isWhitelistEnabled = true //await cloneFactory.methods.getWhitelistEnabled().send()
-    if (isWhitelistEnabled){
-      const isWhitelisted = await cloneFactory.methods.checkWhitelist(sellerAddress).call()
-      if (!isWhitelisted){
-        throw new Error('seller is not whitelisted')
-      }
+
+    const isWhitelisted = await cloneFactory.methods.checkWhitelist(sellerAddress).call()
+    if (!isWhitelisted){
+      throw new Error('seller is not whitelisted')
     }
 
     const account = web3.eth.accounts.privateKeyToAccount(privateKey)
@@ -130,27 +129,6 @@ function createContract(web3, cloneFactory, plugins) {
     )
   }
 }
-
-// function updateContract(web3, chain) {
-//   if(!web3) {
-//     debug('Not a valid Web3 instance');
-//     return;
-//   }
-
-//   return function(params) {
-//     // const { Implementation } = LumerinContracts(web3, chain)
-//     //   .createContract(LumerinContracts[chain].Implementation.abi, address);
-//     const implementationContract = _loadContractInstance(web3, chain, address);
-//     const isRunning = implementationContract.contractState() === 'Running';
-
-//     if(isRunning) {
-//       debug("Contract is currently in the 'Running' state");
-//       return;
-//     }
-
-//     implementationContract.methods.setUpdatePurchaseInformation()
-//   }
-// }
 
 /**
  * @param {import('web3').default} web3
@@ -184,6 +162,13 @@ function cancelContract(web3) {
   }
 }
 
+/**
+ * 
+ * @param {import('web3').default} web3 
+ * @param {import('contracts-js').CloneFactoryContext} cloneFactory 
+ * @param {import('contracts-js').LumerinContext} lumerin 
+ * @returns 
+ */
 function purchaseContract(web3, cloneFactory, lumerin) {
   return async (params) => {
     const { walletId, contractId, url, privateKey, price } = params
