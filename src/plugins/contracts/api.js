@@ -4,7 +4,7 @@
 const debug = require('debug')('lmr-wallet:core:contracts:api')
 const encrypt = require('ecies-geth')
 const { Implementation } = require('contracts-js')
-const ethereumWallet = require('ethereumjs-wallet')
+const ethereumWallet = require('ethereumjs-wallet').default
 
 /**
  * @param {import('contracts-js').CloneFactoryContext} cloneFactory
@@ -121,7 +121,7 @@ function createContract(web3, cloneFactory, plugins) {
     }
 
     const tempWallet = new ethereumWallet(privateKey)
-    const pubKey = tempWallet.pubKey()
+    const pubKey = tempWallet.getPublicKey()
     const account = web3.eth.accounts.privateKeyToAccount(privateKey)
     web3.eth.accounts.wallet.create(0).add(account)
 
