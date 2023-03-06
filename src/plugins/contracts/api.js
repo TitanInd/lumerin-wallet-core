@@ -4,7 +4,7 @@
 const debug = require('debug')('lmr-wallet:core:contracts:api')
 const { encrypt } = require('ecies-geth')
 const { Implementation } = require('contracts-js')
-const { removePrivateKeyPrefix, add65BytesPrefix } = require('./helpers')
+const { remove0xPrefix, add65BytesPrefix } = require('./helpers')
 const ethereumWallet = require('ethereumjs-wallet').default
 
 /**
@@ -121,7 +121,7 @@ function createContract(web3, cloneFactory, plugins) {
       throw new Error('seller is not whitelisted')
     }
 
-    const tempWallet = ethereumWallet.fromPrivateKey(Buffer.from(removePrivateKeyPrefix(privateKey), 'hex'))
+    const tempWallet = ethereumWallet.fromPrivateKey(Buffer.from(remove0xPrefix(privateKey), 'hex'))
     const pubKey = tempWallet.getPublicKey()
   
     const account = web3.eth.accounts.privateKeyToAccount(privateKey)
