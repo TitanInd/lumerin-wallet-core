@@ -1,10 +1,14 @@
+//@ts-check
 'use strict'
 
 const debug = require('debug')('lmr-wallet:core:contracts:api')
-const { CloneFactory, Implementation, Lumerin } = require('contracts-js')
+const { encrypt } = require('ecies-geth')
+const { Implementation } = require('contracts-js')
+const { remove0xPrefix, add65BytesPrefix } = require('./helpers')
+const ethereumWallet = require('ethereumjs-wallet').default
 
 /**
- * @param {CloneFactory} cloneFactory
+ * @param {import('contracts-js').CloneFactoryContext} cloneFactory
  */
 async function _getContractAddresses(cloneFactory) {
   return await cloneFactory.methods
@@ -19,7 +23,7 @@ async function _getContractAddresses(cloneFactory) {
 }
 
 /**
- * @param {web3} web3
+ * @param {import('web3').default} web3
  * @param {string} implementationAddress
  */
 async function _loadContractInstance(web3, implementationAddress) {
@@ -66,30 +70,32 @@ async function _loadContractInstance(web3, implementationAddress) {
 }
 
 /**
- * @param {web3} web3
- * @param {Lumerin} lumerin
- * @param {CloneFactory} cloneFactory
+ * @param {import('web3').default} web3
+ * @param {import('contracts-js').LumerinContext} lumerin
+ * @param {import('contracts-js').CloneFactoryContext} cloneFactory
  */
 async function getActiveContracts(web3, lumerin, cloneFactory) {
   if (!web3) {
     debug('Not a valid Web3 instance')
     return
   }
-  const addresses = await _getContractAddresses(cloneFactory)
+  const addresses = (await _getContractAddresses(cloneFactory)) || []
 
-  return Promise.all(addresses.map(async a => {
-    const contract = await _loadContractInstance(web3, a)
-    const balance = await lumerin.methods.balanceOf(contract.data.id).call();
-    return {
-      ...contract.data,
-      balance,
-    };
-  }));
+  return Promise.all(
+    addresses.map(async (a) => {
+      const contract = await _loadContractInstance(web3, a)
+      const balance = await lumerin.methods.balanceOf(contract.data.id).call()
+      return {
+        ...contract.data,
+        balance,
+      }
+    })
+  )
 }
-        
+
 /**
- * @param {web3} web3
- * @param {CloneFactory} cloneFactory
+ * @param {import('web3').default} web3
+ * @param {import('contracts-js').CloneFactoryContext} cloneFactory
  */
 function createContract(web3, cloneFactory, plugins) {
   if (!web3) {
@@ -106,65 +112,33 @@ function createContract(web3, cloneFactory, plugins) {
       duration,
       sellerAddress,
       validatorAddress = '0x0000000000000000000000000000000000000000',
-      password,
       privateKey,
     } = params
 
-    const account = web3.eth.accounts.privateKeyToAccount(privateKey)
 
+    const isWhitelisted = await cloneFactory.methods.checkWhitelist(sellerAddress).call()
+    if (!isWhitelisted){
+      throw new Error('seller is not whitelisted')
+    }
+
+    const tempWallet = ethereumWallet.fromPrivateKey(Buffer.from(remove0xPrefix(privateKey), 'hex'))
+    const pubKey = tempWallet.getPublicKey()
+  
+    const account = web3.eth.accounts.privateKeyToAccount(privateKey)
     web3.eth.accounts.wallet.create(0).add(account)
 
-
-    return web3.eth
-      .getTransactionCount(sellerAddress, 'pending')
-      .then((nonce) =>
-        plugins.explorer.logTransaction(
-          cloneFactory.methods
-            .setCreateNewRentalContract(
-              price,
-              limit,
-              speed,
-              duration,
-              validatorAddress,
-              ''
-            )
-            .send(
-              {
-                from: sellerAddress,
-                gas: 500000,
-              },
-              function (data, err) {
-                console.log('error: ', err)
-                console.log('data: ', data)
-              }
-            ),
-          sellerAddress
-        )
-      )
+    return plugins.explorer.logTransaction(
+      cloneFactory.methods
+        .setCreateNewRentalContract(price, limit, speed, duration, validatorAddress, pubKey.toString('hex'))
+        .send({ from: sellerAddress, gas: 500000 }),
+      sellerAddress
+    )
   }
 }
 
-// function updateContract(web3, chain) {
-//   if(!web3) {
-//     debug('Not a valid Web3 instance');
-//     return;
-//   }
-
-//   return function(params) {
-//     // const { Implementation } = LumerinContracts(web3, chain)
-//     //   .createContract(LumerinContracts[chain].Implementation.abi, address);
-//     const implementationContract = _loadContractInstance(web3, chain, address);
-//     const isRunning = implementationContract.contractState() === 'Running';
-
-//     if(isRunning) {
-//       debug("Contract is currently in the 'Running' state");
-//       return;
-//     }
-
-//     implementationContract.methods.setUpdatePurchaseInformation()
-//   }
-// }
-
+/**
+ * @param {import('web3').default} web3
+ */
 function cancelContract(web3) {
   if (!web3) {
     debug('Not a valid Web3 instance')
@@ -183,10 +157,7 @@ function cancelContract(web3) {
     const account = web3.eth.accounts.privateKeyToAccount(privateKey)
     web3.eth.accounts.wallet.create(0).add(account)
 
-    const implementationContract = await _loadContractInstance(
-      web3,
-      contractId
-    )
+    const implementationContract = await _loadContractInstance(web3, contractId)
 
     return implementationContract.instance.methods
       .setContractCloseOut(closeOutType)
@@ -197,23 +168,37 @@ function cancelContract(web3) {
   }
 }
 
+/**
+ * 
+ * @param {import('web3').default} web3 
+ * @param {import('contracts-js').CloneFactoryContext} cloneFactory 
+ * @param {import('contracts-js').LumerinContext} lumerin 
+ * @returns 
+ */
 function purchaseContract(web3, cloneFactory, lumerin) {
   return async (params) => {
-    const { walletId, contractId, url, privateKey, price } = params;
-    const sendOptions = { from: walletId, gas: 1_000_000}
+    const { walletId, contractId, url, privateKey, price } = params
+    const sendOptions = { from: walletId, gas: 1_000_000 }
+
+    //getting pubkey from contract to be purchased
+    const implementationContract = Implementation(web3, contractId)
+    const pubKey = await implementationContract.methods.pubKey().call()
+
+    //encrypting plaintext url parameter
+    const ciphertext = await encrypt(Buffer.from(add65BytesPrefix(pubKey), 'hex'), Buffer.from(url))
 
     const account = web3.eth.accounts.privateKeyToAccount(privateKey);
     web3.eth.accounts.wallet.create(0).add(account);
     
     await lumerin.methods
       .increaseAllowance(cloneFactory.options.address, price)
-      .send(sendOptions);
+      .send(sendOptions)
 
     const purchaseResult = await cloneFactory.methods
-      .setPurchaseRentalContract(contractId, url)
-      .send(sendOptions);
+      .setPurchaseRentalContract(contractId, ciphertext.toString('hex'))
+      .send(sendOptions)
 
-    debug(`Finished puchase transaction`, purchaseResult);
+    debug('Finished puchase transaction', purchaseResult)
   }
 }
 
@@ -221,5 +206,5 @@ module.exports = {
   getActiveContracts,
   createContract,
   cancelContract,
-  purchaseContract
+  purchaseContract,
 }
