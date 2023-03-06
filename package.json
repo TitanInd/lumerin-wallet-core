@@ -1,6 +1,6 @@
 {
   "name": "@lumerin/wallet-core",
-  "version": "1.0.30",
+  "version": "1.0.31",
   "author": {
     "name": "Lumerin",
     "email": "developer@lumerin.io",
@@ -35,7 +35,7 @@
     "axios": "0.21.1",
     "axios-cookiejar-support": "1.0.1",
     "cheerio": "^1.0.0-rc.12",
-    "contracts-js": "github:Lumerin-protocol/contracts-js#v0.0.18",
+    "contracts-js": "git+ssh://github.com/Lumerin-protocol/contracts-js.git#0.0.19",
     "cross-port-killer": "^1.4.0",
     "debug": "4.1.1",
     "ethereumjs-wallet": "1.0.1",
@@ -50,7 +50,7 @@
     "safe-exchange-rate": "1.0.0",
     "socket.io-client": "2.1.1",
     "tough-cookie": "2.5.0",
-    "web3": "^1.7.5",
+    "web3": "^1.8.1",
     "websocket-reconnector": "1.1.1"
   },
   "devDependencies": {
