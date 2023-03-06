@@ -2,8 +2,9 @@
 'use strict'
 
 const debug = require('debug')('lmr-wallet:core:contracts:api')
-const encrypt = require('ecies-geth')
+const { encrypt } = require('ecies-geth')
 const { Implementation } = require('contracts-js')
+const { removePrivateKeyPrefix, add65BytesPrefix } = require('./helpers')
 const ethereumWallet = require('ethereumjs-wallet').default
 
 /**
@@ -120,14 +121,15 @@ function createContract(web3, cloneFactory, plugins) {
       throw new Error('seller is not whitelisted')
     }
 
-    const tempWallet = new ethereumWallet(privateKey)
+    const tempWallet = ethereumWallet.fromPrivateKey(Buffer.from(removePrivateKeyPrefix(privateKey), 'hex'))
     const pubKey = tempWallet.getPublicKey()
+  
     const account = web3.eth.accounts.privateKeyToAccount(privateKey)
     web3.eth.accounts.wallet.create(0).add(account)
 
     return plugins.explorer.logTransaction(
       cloneFactory.methods
-        .setCreateNewRentalContract(price, limit, speed, duration, validatorAddress, pubKey)
+        .setCreateNewRentalContract(price, limit, speed, duration, validatorAddress, pubKey.toString('hex'))
         .send({ from: sellerAddress, gas: 500000 }),
       sellerAddress
     )
@@ -183,7 +185,7 @@ function purchaseContract(web3, cloneFactory, lumerin) {
     const pubKey = await implementationContract.methods.pubKey().call()
 
     //encrypting plaintext url parameter
-    const ciphertext = await encrypt(Buffer.from(pubKey, 'hex'), Buffer.from(url));
+    const ciphertext = await encrypt(Buffer.from(add65BytesPrefix(pubKey), 'hex'), Buffer.from(url))
 
     const account = web3.eth.accounts.privateKeyToAccount(privateKey);
     web3.eth.accounts.wallet.create(0).add(account);
