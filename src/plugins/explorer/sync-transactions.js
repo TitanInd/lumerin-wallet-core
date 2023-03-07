@@ -69,7 +69,6 @@ function createSyncer (config, eventBus, web3, queue, eventsRegistry, indexer) {
             resyncing = false;
           })
       } else if (!resyncing) {
-        bestSyncBlock = number;
         bestBlock = number;
       }
     })
