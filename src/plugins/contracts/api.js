@@ -191,7 +191,7 @@ function purchaseContract(web3, cloneFactory, lumerin) {
     web3.eth.accounts.wallet.create(0).add(account);
     
     await lumerin.methods
-      .increaseAllowance(cloneFactory.options.address, price + (price * 0.1))
+      .increaseAllowance(cloneFactory.options.address, price + (price * 0.01))
       .send(sendOptions)
 
     const purchaseResult = await cloneFactory.methods
