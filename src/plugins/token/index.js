@@ -5,7 +5,7 @@ const Web3 = require('web3');
 const { Lumerin } = require('contracts-js');
 
 const events = require('./events');
-const { registerToken, getTokenBalance, getTokenGasLimit } = require('./api');
+const { registerToken, getTokenBalance, getTokenGasLimit, claimFaucet } = require('./api');
 
 function createPlugin () {
   let walletAddress;
@@ -57,7 +57,8 @@ function createPlugin () {
         metaParsers: {
           approval: events.approvalMetaParser,
           transfer: events.transferMetaParser
-        }
+        },
+        claimFaucet: claimFaucet(web3),
       },
       events: [
         'token-contract-received',

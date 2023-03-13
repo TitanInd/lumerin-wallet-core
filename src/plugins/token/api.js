@@ -37,8 +37,29 @@ function getTokenGasLimit(lumerin) {
   }
 }
 
+function claimFaucet(web3) {
+  return async (params) => {
+    const { walletId, privateKey } = params
+
+    const faucetAddress = "0x6C1539191A0bc2e35BfAf87dAdFeaA58f35AD115"
+    const claimFunction = web3.utils.keccak256('claim()').substring(0,10);
+    const gasLimit = 300_000;
+    const txObject = {
+      from: walletId,
+      to: faucetAddress,
+      gas: gasLimit,
+      data: claimFunction
+    }
+  
+    const signedTx = await web3.eth.accounts.signTransaction(txObject, privateKey);
+    const result = await web3.eth.sendSignedTransaction(signedTx.rawTransaction);
+    return result;
+  }
+}
+
 module.exports = {
   registerToken,
   getTokenBalance,
   getTokenGasLimit,
+  claimFaucet,
 }
