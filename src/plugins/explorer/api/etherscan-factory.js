@@ -1,6 +1,6 @@
-const { EtherscanApi } = require('./etherscan-api');
+const { EtherscanApi } = require('./etherscan-api')
 
-const createEtherscanApi = (chainId) =>{
+const createEtherscanApi = (chainId) => {
   let baseURL
 
   switch (chainId.toString()) {
@@ -11,6 +11,10 @@ const createEtherscanApi = (chainId) =>{
     case 'goerli':
     case '5':
       baseURL = 'https://api-goerli.etherscan.io/api'
+      break
+    case 'sepolia':
+    case '11155111':
+      baseURL = 'https://api-sepolia.etherscan.io/api'
       break
     default:
       throw new Error(`Unsupported chain ${chainId}`)

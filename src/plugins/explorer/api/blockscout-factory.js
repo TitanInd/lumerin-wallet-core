@@ -1,4 +1,4 @@
-const { BlockscoutApi } = require('./blockscout-api');
+const { BlockscoutApi } = require('./blockscout-api')
 
 const createBlockscoutApi = (chainId) => {
   let baseURL
@@ -12,11 +12,15 @@ const createBlockscoutApi = (chainId) => {
     case '5':
       baseURL = 'https://eth-goerli.blockscout.com/api'
       break
+    case 'sepolia':
+    case '11155111':
+      baseURL = 'https://eth-sepolia.blockscout.com/api'
+      break
     default:
       throw new Error(`Unsupported chain ${chainId}`)
   }
 
-  return new BlockscoutApi({baseURL})
+  return new BlockscoutApi({ baseURL })
 }
 
 module.exports = { createBlockscoutApi }
