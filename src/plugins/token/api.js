@@ -37,11 +37,10 @@ function getTokenGasLimit(lumerin) {
   }
 }
 
-function claimFaucet(web3) {
+function claimFaucet(web3, faucetAddress) {
   return async (params) => {
     const { walletId, privateKey } = params
 
-    const faucetAddress = "0x6C1539191A0bc2e35BfAf87dAdFeaA58f35AD115"
     const claimFunction = web3.utils.keccak256('claim()').substring(0,10);
     const gasLimit = 300_000;
     const txObject = {
