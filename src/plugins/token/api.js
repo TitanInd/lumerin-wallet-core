@@ -61,7 +61,7 @@ const claimFaucetHttp = async (token, walletAddr, faucetUrl) => {
     {},
     {
       headers: {
-        'x-access-token': token,
+        'x-captcha-token': token,
       },
     }
   )
