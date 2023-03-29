@@ -3,6 +3,7 @@
 const {
   utils: { isAddress, toChecksumAddress },
 } = require('web3')
+const axios = require('axios').default
 const debug = require('debug')('lmr-wallet:core:debug')
 
 const registerToken = ({ explorer }) =>
@@ -37,22 +38,39 @@ function getTokenGasLimit(lumerin) {
   }
 }
 
-function claimFaucet(web3, faucetAddress) {
-  return async (params) => {
-    const { walletId, privateKey } = params
+const claimFaucetDirectly = async (web3, privateKey, walletId) => {
+  const claimFunction = web3.utils.keccak256('claim()').substring(0, 10)
+  const gasLimit = 300_000
+  const txObject = {
+    from: walletId,
+    to: faucetAddress,
+    gas: gasLimit,
+    data: claimFunction,
+  }
 
-    const claimFunction = web3.utils.keccak256('claim()').substring(0,10);
-    const gasLimit = 300_000;
-    const txObject = {
-      from: walletId,
-      to: faucetAddress,
-      gas: gasLimit,
-      data: claimFunction
+  const signedTx = await web3.eth.accounts.signTransaction(txObject, privateKey)
+  const result = await web3.eth.sendSignedTransaction(signedTx.rawTransaction)
+  return result
+}
+
+const claimFaucetHttp = async (token, walletAddr, faucetUrl) => {
+  const baseURL = `${faucetUrl}/${walletAddr}`
+  const api = axios.create({ baseURL });
+  return api.post(
+    '',
+    {},
+    {
+      headers: {
+        'x-access-token': token,
+      },
     }
-  
-    const signedTx = await web3.eth.accounts.signTransaction(txObject, privateKey);
-    const result = await web3.eth.sendSignedTransaction(signedTx.rawTransaction);
-    return result;
+  )
+}
+
+function claimFaucet(web3, faucetAddress, faucetUrl) {
+  return async (params) => {
+    const { walletId, privateKey, token } = params
+    return claimFaucetHttp(token, walletId, faucetUrl);
   }
 }
 
