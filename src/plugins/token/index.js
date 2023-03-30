@@ -12,7 +12,7 @@ function createPlugin () {
 
   function start ({ config, eventBus, plugins }) {
     debug.enabled = config.debug;
-    const { lmrTokenAddress } = config;
+    const { lmrTokenAddress, faucetAddress, faucetUrl } = config;
 
 
     const web3 = new Web3(plugins.eth.web3Provider);
@@ -58,7 +58,7 @@ function createPlugin () {
           approval: events.approvalMetaParser,
           transfer: events.transferMetaParser
         },
-        claimFaucet: claimFaucet(web3),
+        claimFaucet: claimFaucet(web3, faucetAddress, faucetUrl),
       },
       events: [
         'token-contract-received',
