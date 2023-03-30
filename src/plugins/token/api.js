@@ -56,7 +56,7 @@ const claimFaucetDirectly = async (web3, privateKey, walletId) => {
 const claimFaucetHttp = async (token, walletAddr, faucetUrl) => {
   const baseURL = `${faucetUrl}/${walletAddr}`
   const api = axios.create({ baseURL });
-  return api.post(
+  const result = await api.post(
     '',
     {},
     {
@@ -64,7 +64,8 @@ const claimFaucetHttp = async (token, walletAddr, faucetUrl) => {
         'x-captcha-token': token,
       },
     }
-  )
+  );
+  return result.data
 }
 
 function claimFaucet(web3, faucetAddress, faucetUrl) {
