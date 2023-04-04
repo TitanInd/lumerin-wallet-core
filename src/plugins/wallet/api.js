@@ -30,7 +30,7 @@ const sendSignedTransaction = (web3, logTransaction) =>
     return getNextNonce(web3, from)
       .then((nonce) =>
         logTransaction(
-          web3.eth.sendTransaction({ from, to, value: units, gas, gasPrice, nonce }),
+          web3.eth.sendTransaction({ from, to, value: units, gas, nonce }),
           from
         )
       )
