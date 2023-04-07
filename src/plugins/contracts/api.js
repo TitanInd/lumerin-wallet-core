@@ -5,6 +5,7 @@ const debug = require('debug')('lmr-wallet:core:contracts:api')
 const { encrypt } = require('ecies-geth')
 const { Implementation } = require('contracts-js')
 const { remove0xPrefix, add65BytesPrefix } = require('./helpers')
+const { ContractEventsListener } = require('./events-listener')
 const ethereumWallet = require('ethereumjs-wallet').default
 
 /**
@@ -65,7 +66,7 @@ async function _loadContractInstance(web3, implementationAddress) {
       'Error when trying to load Contracts by address in the Implementation contract: ',
       err
     )
-    throw err;
+    throw err
   }
 }
 
@@ -80,10 +81,14 @@ async function getActiveContracts(web3, lumerin, cloneFactory) {
     return
   }
   const addresses = (await _getContractAddresses(cloneFactory)) || []
+  const contractEventsListener = ContractEventsListener.create()
 
   return Promise.all(
     addresses.map(async (a) => {
       const contract = await _loadContractInstance(web3, a)
+      if (contractEventsListener) {
+        contractEventsListener.addContract(contract.data.id, contract.instance)
+      }
       const balance = await lumerin.methods.balanceOf(contract.data.id).call()
       return {
         ...contract.data,
@@ -115,21 +120,31 @@ function createContract(web3, cloneFactory, plugins) {
       privateKey,
     } = params
 
-
-    const isWhitelisted = await cloneFactory.methods.checkWhitelist(sellerAddress).call()
-    if (!isWhitelisted){
+    const isWhitelisted = await cloneFactory.methods
+      .checkWhitelist(sellerAddress)
+      .call()
+    if (!isWhitelisted) {
       throw new Error('seller is not whitelisted')
     }
 
-    const tempWallet = ethereumWallet.fromPrivateKey(Buffer.from(remove0xPrefix(privateKey), 'hex'))
+    const tempWallet = ethereumWallet.fromPrivateKey(
+      Buffer.from(remove0xPrefix(privateKey), 'hex')
+    )
     const pubKey = tempWallet.getPublicKey()
-  
+
     const account = web3.eth.accounts.privateKeyToAccount(privateKey)
     web3.eth.accounts.wallet.create(0).add(account)
 
     return plugins.explorer.logTransaction(
       cloneFactory.methods
-        .setCreateNewRentalContract(price, limit, speed, duration, validatorAddress, pubKey.toString('hex'))
+        .setCreateNewRentalContract(
+          price,
+          limit,
+          speed,
+          duration,
+          validatorAddress,
+          pubKey.toString('hex')
+        )
         .send({ from: sellerAddress, gas: 500000 }),
       sellerAddress
     )
@@ -169,11 +184,11 @@ function cancelContract(web3) {
 }
 
 /**
- * 
- * @param {import('web3').default} web3 
- * @param {import('contracts-js').CloneFactoryContext} cloneFactory 
- * @param {import('contracts-js').LumerinContext} lumerin 
- * @returns 
+ *
+ * @param {import('web3').default} web3
+ * @param {import('contracts-js').CloneFactoryContext} cloneFactory
+ * @param {import('contracts-js').LumerinContext} lumerin
+ * @returns
  */
 function purchaseContract(web3, cloneFactory, lumerin) {
   return async (params) => {
@@ -185,13 +200,16 @@ function purchaseContract(web3, cloneFactory, lumerin) {
     const pubKey = await implementationContract.methods.pubKey().call()
 
     //encrypting plaintext url parameter
-    const ciphertext = await encrypt(Buffer.from(add65BytesPrefix(pubKey), 'hex'), Buffer.from(url))
+    const ciphertext = await encrypt(
+      Buffer.from(add65BytesPrefix(pubKey), 'hex'),
+      Buffer.from(url)
+    )
 
-    const account = web3.eth.accounts.privateKeyToAccount(privateKey);
-    web3.eth.accounts.wallet.create(0).add(account);
-    
+    const account = web3.eth.accounts.privateKeyToAccount(privateKey)
+    web3.eth.accounts.wallet.create(0).add(account)
+
     await lumerin.methods
-      .increaseAllowance(cloneFactory.options.address, price + (price * 0.01))
+      .increaseAllowance(cloneFactory.options.address, price + price * 0.01)
       .send(sendOptions)
 
     const purchaseResult = await cloneFactory.methods
