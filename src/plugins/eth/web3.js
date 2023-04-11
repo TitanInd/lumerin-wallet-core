@@ -7,17 +7,12 @@ function createWeb3 (config, eventBus) {
   debug.enabled = config.debug;
   
   const options = {
-    timeout: config.web3Timeout ?? 30000, // ms
-    clientConfig: {
-      // Useful to keep a connection alive
-      keepalive: true,
-      keepaliveInterval: 60000 // ms
-    },
+    timeout: 1000 * 15, // ms
     // Enable auto reconnection
     reconnect: {
         auto: true,
         delay: 5000, // ms
-        maxAttempts: 5,
+        maxAttempts: false,
         onTimeout: false
     }
   };
