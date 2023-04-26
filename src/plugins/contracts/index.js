@@ -1,3 +1,4 @@
+//@ts-check
 'use strict'
 
 const debug = require('debug')('lmr-wallet:core:contracts')
@@ -5,7 +6,7 @@ const { Lumerin, CloneFactory } = require('contracts-js')
 const Web3 = require('web3')
 
 const {
-  getActiveContracts,
+  getActiveContractsV2,
   createContract,
   cancelContract,
   purchaseContract,
@@ -22,7 +23,7 @@ function createPlugin() {
    * Start the plugin instance.
    *
    * @param {object} options Start options.
-   * @returns {{ events: string[] }} The instance details.
+   * @returns {{ api: {[key: string]:any}, events: string[], name: string }} The instance details.
    */
   function start({ config, eventBus, plugins }) {
     const { lmrTokenAddress, cloneFactoryAddress } = config
@@ -32,10 +33,18 @@ function createPlugin() {
     const lumerin = Lumerin(web3, lmrTokenAddress)
     const cloneFactory = CloneFactory(web3, cloneFactoryAddress)
 
-    const refreshContracts = (web3, lumerin, cloneFactory) => () => {
+    const refreshContracts = (web3, lumerin, cloneFactory) => async (contractId) => {
       eventBus.emit('contracts-scan-started', {})
 
-      return getActiveContracts(web3, lumerin, cloneFactory)
+      const addresses = contractId ? [contractId] : await cloneFactory.methods
+        .getContractList()
+        .call()
+        .catch((error) => {
+          debug('cannot get list of contract addresses:', error)
+          throw error
+        })
+
+      return getActiveContractsV2(web3, lumerin, addresses)
         .then((contracts) => {
           eventBus.emit('contracts-scan-finished', {
             actives: contracts,
@@ -49,10 +58,12 @@ function createPlugin() {
 
     const contractEventsListener = ContractEventsListener.create(
       cloneFactory,
-      refreshContracts(web3, lumerin, cloneFactory),
       config.debug
     );
-    contractEventsListener.listenCloneFactory();
+
+    contractEventsListener.setOnUpdate(
+      refreshContracts(web3, lumerin, cloneFactory)
+    )
 
     return {
       api: {
@@ -61,7 +72,7 @@ function createPlugin() {
         cancelContract: cancelContract(web3),
         purchaseContract: purchaseContract(web3, cloneFactory, lumerin),
       },
-      events: ['contracts-scan-started', 'contracts-scan-finished'],
+      events: ['contracts-scan-started', 'contracts-scan-finished', 'contract-updated'],
       name: 'contracts',
     }
   }
