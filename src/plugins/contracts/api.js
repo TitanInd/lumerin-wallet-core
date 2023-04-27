@@ -42,7 +42,6 @@ async function _loadContractInstance(web3, implementationAddress) {
         encryptedPoolData,
         limit,
       },
-      instance: implementationContract,
     }
   } catch (err) {
     debug(
@@ -75,15 +74,14 @@ async function getContracts(web3, web3Subscriptionable, lumerin, addresses) {
  */
 async function getContract(web3, web3Subscriptionable, lumerin, contractId) {
   const contractEventsListener = ContractEventsListener.getInstance()
-  const [contract, balance, contractSubscriptionable] = await Promise.all([
+  const [contractInstance, balance] = await Promise.all([
     _loadContractInstance(web3, contractId),
     lumerin.methods.balanceOf(contractId).call(),
-    _loadContractInstance(web3Subscriptionable, contractId),
   ]);
 
-  contractEventsListener.addContract(contract.data.id, contractSubscriptionable.instance)
+  contractEventsListener.addContract(contractInstance.data.id, Implementation(web3Subscriptionable, contractId))
   return {
-    ...contract.data,
+    ...contractInstance.data,
     balance,
   }
 }
@@ -162,9 +160,8 @@ function cancelContract(web3) {
     const account = web3.eth.accounts.privateKeyToAccount(privateKey)
     web3.eth.accounts.wallet.create(0).add(account)
 
-    const implementationContract = await _loadContractInstance(web3, contractId)
-
-    return implementationContract.instance.methods
+    return await Implementation(web3, contractId)
+      .methods
       .setContractCloseOut(closeOutType)
       .send({
         from: walletAddress,

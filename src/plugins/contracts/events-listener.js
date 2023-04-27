@@ -25,7 +25,6 @@ class ContractEventsListener {
    */
   addContract(id, instance) {
     if (!this.contracts[id]) {
-      debug('Start listen clone factory events')
       this.contracts[id] = instance.events.allEvents()
       this.contracts[id]
         .on('connected', () => {
