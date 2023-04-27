@@ -27,7 +27,8 @@ function createPlugin () {
 
     return {
       api: {
-        web3Provider: web3.currentProvider
+        web3Provider: web3.currentProvider,
+        web3SubscriptionProvider: web3.subscriptionProvider
       },
       events: [
         'wallet-error',

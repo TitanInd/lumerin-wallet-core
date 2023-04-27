@@ -1,4 +1,6 @@
 //@ts-check
+const debug = require('debug')('lmr-wallet:core');
+
 class ContractEventsListener {
   /**
    * @param {import('contracts-js').CloneFactoryContext} cloneFactory
@@ -47,7 +49,7 @@ class ContractEventsListener {
     if (ContractEventsListener.instance) {
       return ContractEventsListener.instance
     }
-    debug.enabled = debugEnabled;
+    
     ContractEventsListener.instance = new ContractEventsListener(
       cloneFactory
     )

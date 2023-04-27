@@ -114,6 +114,8 @@ function createQueue(config, eventBus, web3) {
     }
   }
 
+  //TODO: accept transaction and reciept to avoid api calls
+  //TODO: if transaction/reciept are not available, use block number to get all transactions and receipts in one api call
   function emitPendingEvents(address) {
     debug('About to emit pending events')
 
