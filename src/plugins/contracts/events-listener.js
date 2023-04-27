@@ -1,5 +1,5 @@
 //@ts-check
-const debug = require('debug')('lmr-wallet:core');
+const debug = require('debug')('lmr-wallet:core:contracts:event-listener')
 
 class ContractEventsListener {
   /**
@@ -40,20 +40,37 @@ class ContractEventsListener {
     }
   }
 
+  listenCloneFactory() {
+    if (!this.cloneFactoryListener) {
+      this.cloneFactoryListener = this.cloneFactory.events.contractCreated()
+      this.cloneFactoryListener
+        .on('connected', () => {
+          debug('Start listen clone factory events')
+        })
+        .on('data', (event) => {
+          const contractId = event.returnValues._address
+          debug('New contract created', contractId)
+          this.onUpdate(contractId)
+        })
+    }
+  }
+
   /**
    * @static
    * @param {import('contracts-js').CloneFactoryContext} cloneFactory
    * @param {boolean} [debugEnabled=false]
+   * @returns {ContractEventsListener}
    */
   static create(cloneFactory, debugEnabled = false) {
     if (ContractEventsListener.instance) {
       return ContractEventsListener.instance
     }
-    
-    ContractEventsListener.instance = new ContractEventsListener(
-      cloneFactory
-    )
-    return ContractEventsListener.instance
+    debug.enabled = debugEnabled;
+
+    const instance = new ContractEventsListener(cloneFactory)
+    ContractEventsListener.instance = instance
+    instance.listenCloneFactory()
+    return instance
   }
 
   /**

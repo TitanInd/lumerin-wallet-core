@@ -3,10 +3,15 @@
 
 const debug = require('debug')('lmr-wallet:core:contracts')
 const { Lumerin, CloneFactory } = require('contracts-js')
+
+/**
+ * @type {typeof import('web3').default}
+ */
+//@ts-ignore
 const Web3 = require('web3')
 
 const {
-  getActiveContractsV2,
+  getContracts,
   createContract,
   cancelContract,
   purchaseContract,
@@ -47,7 +52,7 @@ function createPlugin() {
           throw error
         })
 
-      return getActiveContractsV2(web3, web3Subscriptionable, lumerin, addresses)
+      return getContracts(web3, web3Subscriptionable, lumerin, addresses)
         .then((contracts) => {
           eventBus.emit('contracts-scan-finished', {
             actives: contracts,
@@ -67,6 +72,8 @@ function createPlugin() {
     contractEventsListener.setOnUpdate(
       refreshContracts(web3, lumerin, cloneFactory)
     )
+
+    contractEventsListener.listenCloneFactory()
 
     return {
       api: {
