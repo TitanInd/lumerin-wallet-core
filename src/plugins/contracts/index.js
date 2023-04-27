@@ -70,6 +70,8 @@ function createPlugin() {
       refreshContracts(web3, lumerin, cloneFactory)
     )
 
+    contractEventsListener.listenCloneFactory()
+
     return {
       api: {
         refreshContracts: refreshContracts(web3, lumerin, cloneFactory),
