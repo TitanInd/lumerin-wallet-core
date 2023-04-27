@@ -22,9 +22,20 @@ function createWeb3(config) {
 function createWeb3Subscriptionable (config, eventBus) {
   debug.enabled = config.debug;
 
+  const options = {
+    timeout: 1000 * 15, // ms
+    // Enable auto reconnection
+    reconnect: {
+        auto: true,
+        delay: 5000, // ms
+        maxAttempts: false,
+        onTimeout: false
+    }
+  };
+
   const web3 = new Web3(new Web3.providers.WebsocketProvider(
     config.wsApiUrl,
-    { autoReconnect: true, timeout: config.web3Timeout }
+    options,
   ));
 
   web3.currentProvider.on('connect', function () {
