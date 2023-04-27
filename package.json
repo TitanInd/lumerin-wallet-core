@@ -20,7 +20,7 @@
     "src"
   ],
   "main": "src/index.js",
-  "repository": "https://gitlab.com/TitanInd/proxy/wallet-core",
+  "repository": "https://github.com/lumerin-protocol/WalletCore",
   "scripts": {
     "check": "dependency-check . --no-dev --ignore-module patch-package --ignore-module websocket-reconnector",
     "lint": "",
