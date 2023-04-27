@@ -1,30 +1,19 @@
-const debug = require('debug')('lmr-wallet:core:contracts')
-
+//@ts-check
 class ContractEventsListener {
   /**
-   *
    * @param {import('contracts-js').CloneFactoryContext} cloneFactory
-   * @param {Function} onUpdate
    */
-  constructor(cloneFactory, onUpdate) {
+  constructor(cloneFactory) {
     this.cloneFactory = cloneFactory
     this.cloneFactoryListener = null
-    this.onUpdate = onUpdate
     this.contracts = {}
   }
 
-  listenCloneFactory() {
-    if (!this.cloneFactoryListener) {
-      this.cloneFactoryListener = this.cloneFactory.events.contractCreated()
-      this.cloneFactoryListener
-        .on('connected', () => {
-          debug('Start listen clone factory events')
-        })
-        .on('data', () => {
-          debug('New contract created')
-          this.onUpdate()
-        })
-    }
+  /**
+   * @param {(contractId?: string) => void} onUpdate
+   */
+  setOnUpdate(onUpdate) {
+    this.onUpdate = onUpdate
   }
 
   /**
@@ -42,26 +31,45 @@ class ContractEventsListener {
         })
         .on('data', () => {
           debug(`Contract (${id}) updated`)
-          this.onUpdate()
+          if (this.onUpdate){
+            this.onUpdate(id)
+          }
         })
     }
   }
 
   /**
    * @static
-   * @param {import('contracts-js').CloneFactoryContext} [cloneFactory]
-   * @param {Function} [onUpdate]
+   * @param {import('contracts-js').CloneFactoryContext} cloneFactory
+   * @param {boolean} [debugEnabled=false]
    */
-  static create(cloneFactory, onUpdate, debugEnabled = false) {
+  static create(cloneFactory, debugEnabled = false) {
     if (ContractEventsListener.instance) {
       return ContractEventsListener.instance
     }
     debug.enabled = debugEnabled;
     ContractEventsListener.instance = new ContractEventsListener(
-      cloneFactory,
-      onUpdate
+      cloneFactory
     )
     return ContractEventsListener.instance
+  }
+
+  /**
+   * @returns {ContractEventsListener}
+   */
+  static getInstance() {
+    if (!ContractEventsListener.instance) {
+      throw new Error("ContractEventsListener instance not created")
+    }
+    return ContractEventsListener.instance
+  }
+
+  /**
+   * @static
+   * @param {(contractId?: string) => void} onUpdate
+  */
+  static setOnUpdate(onUpdate) {    
+    ContractEventsListener.getInstance().onUpdate = onUpdate
   }
 }
 

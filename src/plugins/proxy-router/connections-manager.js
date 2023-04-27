@@ -65,8 +65,6 @@ function createConnectionsManager(config, eventBus) {
     disconnect()
     interval = setInterval(async () => {
       try {
-        debug('Attempting to get connections')
-
         const connections = await getConnections(sellerUrl, buyerUrl)
 
         if (!isConnected) {

@@ -81,7 +81,7 @@ async function getActiveContracts(web3, lumerin, cloneFactory) {
     return
   }
   const addresses = (await _getContractAddresses(cloneFactory)) || []
-  const contractEventsListener = ContractEventsListener.create()
+  const contractEventsListener = ContractEventsListener.getInstance()
 
   return Promise.all(
     addresses.map(async (a) => {
@@ -96,6 +96,38 @@ async function getActiveContracts(web3, lumerin, cloneFactory) {
       }
     })
   )
+}
+
+/**
+ * @param {import('web3').default} web3
+ * @param {import('contracts-js').LumerinContext} lumerin
+ * @param {string[]} addresses
+ */
+async function getActiveContractsV2(web3, lumerin, addresses) {
+  return Promise.all(
+    addresses.map(async (address) => 
+      getActiveContract(web3, lumerin, address)
+    )
+  )
+}
+
+/**
+ * @param {import('web3').default} web3
+ * @param {import('contracts-js').LumerinContext} lumerin
+ * @param {string} contractId
+ */
+async function getActiveContract(web3, lumerin, contractId) {
+  const contractEventsListener = ContractEventsListener.getInstance()
+  const [contract,balance] = await Promise.all([
+    _loadContractInstance(web3, contractId),
+    lumerin.methods.balanceOf(contractId).call()
+  ]);
+
+  contractEventsListener.addContract(contract.data.id, contract.instance)
+  return {
+    ...contract.data,
+    balance,
+  }
 }
 
 /**
@@ -222,6 +254,7 @@ function purchaseContract(web3, cloneFactory, lumerin) {
 
 module.exports = {
   getActiveContracts,
+  getActiveContractsV2,
   createContract,
   cancelContract,
   purchaseContract,
