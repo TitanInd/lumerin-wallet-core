@@ -1,28 +1,41 @@
-//@ts-check
-'use strict';
+'use strict'
 
-const debug = require('debug')('lmr-wallet:core:eth:web3');
+const debug = require('debug')('lmr-wallet:core:eth:web3')
+const Web3 = require('web3')
+const https = require('https')
 
-/**
- * @type {typeof import('web3').default}
- */
-//@ts-ignore
-const Web3 = require('web3');
-
-function createWeb3 (config, eventBus) {
-  debug.enabled = config.debug;
+function createWeb3(config) {
+  debug.enabled = config.debug
   
+  const web3 = new Web3(new Web3.providers.HttpProvider(
+    config.httpApiUrl,
+    {
+      agent: new https.Agent({
+        rejectUnauthorized: false, // Set to false if your HTTPS node endpoint uses a self-signed certificate
+      }),
+    }
+  ));
+  
+  return web3
+}
+
+function createWeb3Subscriptionable (config, eventBus) {
+  debug.enabled = config.debug;
+
+  const options = {
+    timeout: 1000 * 15, // ms
+    // Enable auto reconnection
+    reconnect: {
+        auto: true,
+        delay: 5000, // ms
+        maxAttempts: false,
+        onTimeout: false
+    }
+  };
+
   const web3 = new Web3(new Web3.providers.WebsocketProvider(
     config.wsApiUrl,
-    {
-      timeout: 1000 * 15, // ms
-      // Enable auto reconnection
-      reconnect: {
-          auto: true,
-          delay: 5000, // ms
-          onTimeout: false
-      }
-    }
+    options,
   ));
 
   web3.currentProvider.on('connect', function () {
@@ -41,11 +54,12 @@ function createWeb3 (config, eventBus) {
   return web3;
 }
 
-function destroyWeb3 (web3) {
-  web3.currentProvider.disconnect();
+function destroyWeb3(web3) {
+  web3.currentProvider.disconnect()
 }
 
 module.exports = {
   createWeb3,
-  destroyWeb3
-};
+  destroyWeb3,
+  createWeb3Subscriptionable,
+}

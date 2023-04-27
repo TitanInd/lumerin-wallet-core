@@ -35,8 +35,11 @@ function createPlugin() {
     const { eth } = plugins
 
     const web3 = new Web3(eth.web3Provider)
+    const web3Subscriptionable = new Web3(plugins.eth.web3SubscriptionProvider);
+  
     const lumerin = Lumerin(web3, lmrTokenAddress)
     const cloneFactory = CloneFactory(web3, cloneFactoryAddress)
+    const cloneFactorySubscriptionable = CloneFactory(web3, cloneFactoryAddress)
 
     const refreshContracts = (web3, lumerin, cloneFactory) => async (contractId) => {
       eventBus.emit('contracts-scan-started', {})
@@ -49,7 +52,7 @@ function createPlugin() {
           throw error
         })
 
-      return getContracts(web3, lumerin, addresses)
+      return getContracts(web3, web3Subscriptionable, lumerin, addresses)
         .then((contracts) => {
           eventBus.emit('contracts-scan-finished', {
             actives: contracts,
@@ -62,7 +65,7 @@ function createPlugin() {
     }
 
     const contractEventsListener = ContractEventsListener.create(
-      cloneFactory,
+      cloneFactorySubscriptionable,
       config.debug
     );
 
