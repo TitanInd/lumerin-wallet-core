@@ -27,15 +27,12 @@ function createWeb3(config, eventBus) {
     }
   )
 
-  // const web3 = new Web3(
-  //   new Web3.providers.WebsocketProvider(config.wsApiUrl, options)
-  // )
-
-  subscriptionProvider = new Web3.providers.WebsocketProvider(config.wsApiUrl, options)
-
-  const web3 = new Web3(
-    subscriptionProvider
+  subscriptionProvider = new Web3.providers.WebsocketProvider(
+    config.wsApiUrl,
+    options
   )
+
+  let web3 = new Web3(subscriptionProvider)
 
   web3.currentProvider.on('connect', function () {
     debug('Web3 provider connected')
@@ -49,9 +46,14 @@ function createWeb3(config, eventBus) {
     debug('Web3 provider connection ended: ', event.reason)
     eventBus.emit('web3-connection-status-changed', { connected: false })
   })
-  
-  web3.setProvider(httpProvider);
 
+  web3 = new Web3(providers[0])
+  
+
+  overrideFunctions(web3)
+  overrideFunctions(web3.eth)
+  web3.subscriptionProvider = subscriptionProvider;
+  
   return web3
 }
 
@@ -59,7 +61,73 @@ function destroyWeb3(web3) {
   web3.currentProvider.disconnect()
 }
 
-let subscriptionProvider;
+const urls = [
+  process.env.HTTP_ETH_NODE_ADDRESS,
+  process.env.HTTP_ETH_NODE_ADDRESS2,
+  process.env.HTTP_ETH_NODE_ADDRESS3,
+]
+
+const providers = urls.map((url) => {
+  return new Web3.providers.HttpProvider(url)
+})
+let lastUsedProviderIndex = -1
+
+const overrideFunctions = function (object) {
+  const originalSetProvider = object.setProvider
+
+  const originalFunctions = Object.assign({}, object)
+  Object.keys(originalFunctions).forEach((key) => {
+    if (
+      typeof originalFunctions[key] === 'function' &&
+      !key.startsWith('set')
+    ) {
+      object[key] = function () {
+        const isAsync =
+          originalFunctions[key][Symbol.toStringTag] === 'AsyncFunction'
+        const args = arguments
+        let providerIndex = lastUsedProviderIndex
+        let result
+        do {
+          providerIndex = (providerIndex + 1) % providers.length
+          const provider = providers[providerIndex]
+          originalSetProvider(provider)
+          if (isAsync) {
+            result = originalFunctions[key]
+              .apply(this, args)
+              .then((res) => {
+                if (res !== undefined) {
+                  return res
+                }
+                throw new Error('Result is undefined')
+              })
+              .catch((error) => {
+                console.error(`Error with provider ${provider.host}:`, error)
+                throw error
+              })
+          } else {
+            try {
+              result = originalFunctions[key].apply(this, args)
+              if (result !== undefined) {
+                break
+              }
+            } catch (error) {
+              console.error(`Error with provider ${provider.host}:`, error)
+            }
+          }
+        } while (providerIndex !== lastUsedProviderIndex)
+        lastUsedProviderIndex = providerIndex
+        if (result === undefined) {
+          throw new Error('All providers failed to execute the function')
+        }
+        return result
+      }
+    }
+  })
+
+  object.setProvider = originalSetProvider
+}
+
+let subscriptionProvider
 
 module.exports = {
   createWeb3,

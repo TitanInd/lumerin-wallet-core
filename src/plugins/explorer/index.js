@@ -23,7 +23,7 @@ function createPlugin () {
 
     const web3 = new Web3(plugins.eth.web3Provider);
 
-    const web3Subscribable = new Web3(plugins.eth.subscriptionProvider);
+    const web3Subscribable = new Web3(plugins.eth.web3SubscriptionProvider);
 
     const eventsRegistry = createEventsRegistry();
     const queue = createQueue(config, eventBus, web3);
