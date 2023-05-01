@@ -27,7 +27,7 @@ function createPlugin () {
 
     const eventsRegistry = createEventsRegistry();
     const queue = createQueue(config, eventBus, web3);
-    const lumerin = Lumerin(web3, lmrTokenAddress);
+    const lumerin = Lumerin(web3Subscribable, lmrTokenAddress);
 
     const explorer = createExplorer(config.chainId, web3, lumerin);
 

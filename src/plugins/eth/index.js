@@ -2,16 +2,18 @@
 
 const debug = require('debug')('lmr-wallet:core:eth');
 
-const { createWeb3, destroyWeb3 } = require('./web3');
+const { createWeb3, destroyWeb3, createWeb3Subscribable } = require('./web3');
 const checkChain = require('./check-chain');
 
 function createPlugin () {
   let web3 = null;
+  let web3SubscribAble = null;
 
   function start ({ config, eventBus }) {
     debug.enabled = config.debug;
     
     web3 = createWeb3(config, eventBus);
+    web3SubscribAble = createWeb3Subscribable(config, eventBus);
 
     checkChain(web3, config.chainId)
       .then(function () {
@@ -28,7 +30,7 @@ function createPlugin () {
     return {
       api: {
         web3Provider: web3.currentProvider,
-        web3SubscriptionProvider: web3.subscriptionProvider
+        web3SubscriptionProvider: web3SubscribAble.currentProvider,
       },
       events: [
         'wallet-error',

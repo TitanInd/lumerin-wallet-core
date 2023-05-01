@@ -1,5 +1,3 @@
-//@ts-check
-'use strict'
 
 const debug = require('debug')('lmr-wallet:core:contracts:api')
 const { encrypt } = require('ecies-geth')
@@ -7,21 +5,6 @@ const { Implementation } = require('contracts-js')
 const { remove0xPrefix, add65BytesPrefix } = require('./helpers')
 const { ContractEventsListener } = require('./events-listener')
 const ethereumWallet = require('ethereumjs-wallet').default
-
-/**
- * @param {import('contracts-js').CloneFactoryContext} cloneFactory
- */
-async function _getContractAddresses(cloneFactory) {
-  return await cloneFactory.methods
-    .getContractList()
-    .call()
-    .catch((error) => {
-      debug(
-        'Error when trying get list of contract addresses from CloneFactory contract: ',
-        error
-      )
-    })
-}
 
 /**
  * @param {import('web3').default} web3
@@ -72,58 +55,33 @@ async function _loadContractInstance(web3, implementationAddress) {
 
 /**
  * @param {import('web3').default} web3
- * @param {import('contracts-js').LumerinContext} lumerin
- * @param {import('contracts-js').CloneFactoryContext} cloneFactory
- */
-async function getActiveContracts(web3, lumerin, cloneFactory) {
-  if (!web3) {
-    debug('Not a valid Web3 instance')
-    return
-  }
-  const addresses = (await _getContractAddresses(cloneFactory)) || []
-  const contractEventsListener = ContractEventsListener.getInstance()
-
-  return Promise.all(
-    addresses.map(async (a) => {
-      const contract = await _loadContractInstance(web3, a)
-      if (contractEventsListener) {
-        contractEventsListener.addContract(contract.data.id, contract.instance)
-      }
-      const balance = await lumerin.methods.balanceOf(contract.data.id).call()
-      return {
-        ...contract.data,
-        balance,
-      }
-    })
-  )
-}
-
-/**
- * @param {import('web3').default} web3
+ * @param {import('web3').default} web3Subscriptionable
  * @param {import('contracts-js').LumerinContext} lumerin
  * @param {string[]} addresses
  */
-async function getActiveContractsV2(web3, lumerin, addresses) {
+async function getContracts(web3, web3Subscriptionable, lumerin, addresses) {
   return Promise.all(
     addresses.map(async (address) => 
-      getActiveContract(web3, lumerin, address)
+      getContract(web3, web3Subscriptionable, lumerin, address)
     )
   )
 }
 
 /**
  * @param {import('web3').default} web3
+ * @param {import('web3').default} web3Subscriptionable
  * @param {import('contracts-js').LumerinContext} lumerin
  * @param {string} contractId
  */
-async function getActiveContract(web3, lumerin, contractId) {
+async function getContract(web3, web3Subscriptionable, lumerin, contractId) {
   const contractEventsListener = ContractEventsListener.getInstance()
-  const [contract,balance] = await Promise.all([
+  const [contract, balance, contractSubscriptionable] = await Promise.all([
     _loadContractInstance(web3, contractId),
-    lumerin.methods.balanceOf(contractId).call()
+    lumerin.methods.balanceOf(contractId).call(),
+    _loadContractInstance(web3Subscriptionable, contractId),
   ]);
 
-  contractEventsListener.addContract(contract.data.id, contract.instance)
+  contractEventsListener.addContract(contract.data.id, contractSubscriptionable.instance)
   return {
     ...contract.data,
     balance,
@@ -253,8 +211,8 @@ function purchaseContract(web3, cloneFactory, lumerin) {
 }
 
 module.exports = {
-  getActiveContracts,
-  getActiveContractsV2,
+  getContracts,
+  getContract,
   createContract,
   cancelContract,
   purchaseContract,
