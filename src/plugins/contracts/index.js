@@ -39,7 +39,7 @@ function createPlugin() {
   
     const lumerin = Lumerin(web3, lmrTokenAddress)
     const cloneFactory = CloneFactory(web3, cloneFactoryAddress)
-    const cloneFactorySubscriptionable = CloneFactory(web3, cloneFactoryAddress)
+    const cloneFactorySubscriptionable = CloneFactory(web3Subscriptionable, cloneFactoryAddress)
 
     const refreshContracts = (web3, lumerin, cloneFactory) => async (contractId) => {
       eventBus.emit('contracts-scan-started', {})
@@ -72,8 +72,6 @@ function createPlugin() {
     contractEventsListener.setOnUpdate(
       refreshContracts(web3, lumerin, cloneFactory)
     )
-
-    contractEventsListener.listenCloneFactory()
 
     return {
       api: {
