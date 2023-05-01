@@ -23,11 +23,11 @@ function createPlugin () {
 
     const web3 = new Web3(plugins.eth.web3Provider);
 
-    const web3Subscriptionable = new Web3(plugins.eth.web3SubscriptionProvider);
+    const web3Subscribable = new Web3(plugins.eth.web3SubscriptionProvider);
 
     const eventsRegistry = createEventsRegistry();
     const queue = createQueue(config, eventBus, web3);
-    const lumerin = Lumerin(web3Subscriptionable, lmrTokenAddress);
+    const lumerin = Lumerin(web3Subscribable, lmrTokenAddress);
 
     const explorer = createExplorer(config.chainId, web3, lumerin);
 
@@ -41,7 +41,7 @@ function createPlugin () {
     );
 
     debug('Initiating blocks stream');
-    blocksStream = createStream(web3Subscriptionable);
+    blocksStream = createStream(web3Subscribable);
     blocksStream.on('data', function ({ hash, number, timestamp }) {
       debug('New block', hash, number);
       eventBus.emit('coin-block', { hash, number, timestamp });

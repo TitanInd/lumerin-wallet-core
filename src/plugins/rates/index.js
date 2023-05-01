@@ -28,13 +28,16 @@ function createPlugin() {
     dataStream = createStream(getRate, ratesUpdateMs)
 
     dataStream.on('data', function (price) {
-      Object.entries(price).forEach(([token, price]) =>
-        eventBus.emit('coin-price-updated', {
-          token: token,
-          currency: 'USD',
-          price: price,
-        })
-      )
+      debug('coin price updated: ', price);
+      if (price) {
+        Object.entries(price).forEach(([token, price]) =>
+          eventBus.emit('coin-price-updated', {
+            token: token,
+            currency: 'USD',
+            price: price,
+          })
+        )
+      }
     })
 
     dataStream.on('error', function (err) {
