@@ -4,17 +4,28 @@ const debug = require('debug')('lmr-wallet:core:eth:web3')
 const Web3 = require('web3')
 const https = require('https')
 
+let providers = [];
+
 function createWeb3(config) {
   debug.enabled = config.debug
 
+  providers = config.httpApiUrls.map((url) => {
+    return new Web3.providers.HttpProvider(url, {
+      agent: new https.Agent({
+        rejectUnauthorized: false, // Set to false if your HTTPS node endpoint uses a self-signed certificate
+      }),
+    })
+  })
+
+  config.httpApiUrls
   const web3 = new Web3(providers[0], {
     agent: new https.Agent({
       rejectUnauthorized: false, // Set to false if your HTTPS node endpoint uses a self-signed certificate
     }),
   })
 
-  overrideFunctions(web3)
-  overrideFunctions(web3.eth)
+  overrideFunctions(web3, providers)
+  overrideFunctions(web3.eth, providers)
   web3.subscriptionProvider = subscriptionProvider
 
   return web3
@@ -64,16 +75,9 @@ const urls = [
   process.env.HTTP_ETH_NODE_ADDRESS3,
 ]
 
-const providers = urls.map((url) => {
-  return new Web3.providers.HttpProvider(url, {
-    agent: new https.Agent({
-      rejectUnauthorized: false, // Set to false if your HTTPS node endpoint uses a self-signed certificate
-    }),
-  })
-})
 let lastUsedProviderIndex = -1
 
-const overrideFunctions = function (object) {
+const overrideFunctions = function (object, providers) {
   const originalSetProvider = object.setProvider
 
   const originalFunctions = Object.assign({}, object)
