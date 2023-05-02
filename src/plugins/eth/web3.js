@@ -17,7 +17,6 @@ function createWeb3(config) {
     })
   })
 
-  config.httpApiUrls
   const web3 = new Web3(providers[0], {
     agent: new https.Agent({
       rejectUnauthorized: false, // Set to false if your HTTPS node endpoint uses a self-signed certificate
