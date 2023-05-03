@@ -21,8 +21,8 @@ const createLogTransactionV2 = queue =>
             }
           })
           .once('receipt', function (receipt) {
-            const msg = { transaction, receipt }
             // todo: get from to value from return data
+            transaction.hash = receipt.transactionHash
             queue.addTx(from, metaParser)({ transaction, receipt })
             resolve({ receipt });
           })
