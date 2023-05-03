@@ -129,6 +129,7 @@ function createQueue(config, eventBus, web3) {
         .filter((data) => !!data.transaction)
         .map(fillInStatus)
         .map(decodeInput(address.toLowerCase()))
+        .filter((i) => Number(i.transaction.value) !== 0) // filters out eth transactions that correspond to token transfers
         .filter((i) => !!i)
     })
 
