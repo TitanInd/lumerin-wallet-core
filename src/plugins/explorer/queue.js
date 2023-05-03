@@ -20,7 +20,9 @@ function createQueue(config, eventBus, web3) {
   let pendingEvents = []
 
   function mergeEvents(hash, events) {
-    const metas = events.map(({ event, metaParser }) => metaParser(event))
+    const metas = events.map(({ event, metaParser }) => {
+      return metaParser(event)}
+    )
 
     metas.unshift(metasCache[hash] || {})
 
@@ -38,14 +40,42 @@ function createQueue(config, eventBus, web3) {
     return { transaction, receipt, meta }
   }
 
-  const decodeInput =
-    (address) =>
+  const decodeInput = (address) =>
     ({ transaction, receipt, meta }) => {
       try {
+
+        // for lmr token transactions retrieved by rpc call
+        if (receipt.events){
+          if (receipt.events.Transfer){
+            const {from, to, value} = receipt.events.Transfer.returnValues
+            transaction.input = {
+              to,
+              from,
+              amount: value,
+            }
+            return { transaction, receipt, meta }
+          }
+        }
+
+        // for lmr token transactions retrieved by etherscan api
+        if (receipt.tokenSymbol === 'LMR'){
+          transaction.input = {
+            to: receipt.to,
+            from: receipt.from,
+            amount: receipt.value,
+          }
+          return { transaction, receipt, meta }
+        }
+
         if (
           typeof transaction.input === 'string' &&
           transaction.input !== '0x'
         ) {
+          if (!receipt.logs){
+            return { transaction, receipt, meta }
+          }
+
+
           const logs = abiDecoder.decodeLogs(receipt.logs)
           if (!logs) {
             return null
@@ -99,10 +129,11 @@ function createQueue(config, eventBus, web3) {
         .filter((data) => !!data.transaction)
         .map(fillInStatus)
         .map(decodeInput(address.toLowerCase()))
-        .filter((i) => !!i),
+        .filter((i) => !!i)
     })
 
-    Promise.all([eventBus.emit('eth-tx'), eventBus.emit('lmr-tx')])
+    // eventBus.emit('eth-tx');
+    // eventBus.emit('lmr-tx');
   }
 
   function tryEmitTransactions(address, transactions) {
@@ -144,6 +175,8 @@ function createQueue(config, eventBus, web3) {
         )
       })
       .catch(function (err) {
+        console.error("in emitPendingEvents", err)
+        
         eventBus.emit('wallet-error', {
           inner: err,
           message: 'Could not emit event transaction',
@@ -152,6 +185,34 @@ function createQueue(config, eventBus, web3) {
         eventsToEmit.forEach(function (event) {
           event.done(err)
         })
+      })
+  }
+
+  function emitPendingEventsV2(address, eventData) {
+    // const eventsToEmit = events.filter((e) => e.address === address)
+    // const eventsToKeep = pendingEvents.filter((e) => e.address !== address)
+    // pendingEvents = eventsToKeep
+
+    // const grouped = groupBy(eventsToEmit, 'event.transactionHash')
+
+    const transaction =  {
+        transaction: eventData.event.transaction,
+        receipt: eventData.event.receipt,
+        meta: mergeEvents(eventData.event.receipt.transactionHash, [eventData]),
+        done: eventData.done
+    }
+
+    const err = tryEmitTransactions(address, [transaction])
+    
+    return transaction.done(err)
+      .catch(function (err) {
+        console.error("in emitPendingEventsV2", err)
+        eventBus.emit('wallet-error', {
+          inner: err,
+          message: 'Could not emit event transaction',
+          meta: { plugin: 'explorer' },
+        })
+        return transaction.done(err)
       })
   }
 
@@ -175,6 +236,19 @@ function createQueue(config, eventBus, web3) {
       })
     }
 
+  const addTx = (address, metaParser) => (txAndReceipt) => {
+    return new Promise(function (resolve, reject) {
+      const event = {
+        address,
+        event: txAndReceipt,
+        metaParser: () => metaParser || {},
+        done: (err) => (err ? reject(err) : resolve()),
+      }
+
+      emitPendingEventsV2(address, event)
+    })
+  }
+
   const addEvent = (address, metaParser) =>
     function (event) {
       debug('Queueing event', event.event)
@@ -192,6 +266,7 @@ function createQueue(config, eventBus, web3) {
   return {
     addEvent,
     addTransaction,
+    addTx,
   }
 }
 

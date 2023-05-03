@@ -27,8 +27,11 @@ function createSyncer (config, eventBus, web3, queue, eventsRegistry, indexer) {
 
     const { symbol, displayName } = config;
 
+    // LMN transactions
     indexer.getTransactionStream(address)
-      .on('data', queue.addTransaction(address))
+      .on('data', (data)=>{
+        queue.addTx(address, null)(mapApiResponseToTrxReceipt(data))
+      })
       .on('resync', function () {
         debug(`Shall resync ${symbol} transactions on next block`)
         shallResync = true;
@@ -43,6 +46,7 @@ function createSyncer (config, eventBus, web3, queue, eventsRegistry, indexer) {
         });
       });
 
+    // ETH transactions
     // Check if shall resync when a new block is seen, as that is the
     // indication of proper reconnection to the Ethereum node.
     eventBus.on('coin-block', function ({ number }) {
@@ -50,11 +54,14 @@ function createSyncer (config, eventBus, web3, queue, eventsRegistry, indexer) {
         resyncing = true;
         shallResync = false;
         // eslint-disable-next-line promise/catch-or-return
-        indexer.getTransactions(bestSyncBlock, number, address)
+        indexer.getETHTransactions(bestSyncBlock, number, address)
           .then(function (transactions) {
             const { length } = transactions;
             debug(`${length} past ${symbol} transactions retrieved`)
-            transactions.forEach(queue.addTransaction(address));
+            // transactions.forEach(queue.addTransaction(address));
+            transactions.forEach((transaction) =>{
+              queue.addTx(address, null)(mapApiResponseToTrxReceipt(transaction))
+            })
             bestSyncBlock = number;
           })
           .catch(function (err) {
@@ -74,15 +81,70 @@ function createSyncer (config, eventBus, web3, queue, eventsRegistry, indexer) {
     })
   }
 
-  function getPastCoinTransactions (fromBlock, toBlock, address) {
+  function mapApiResponseToTrxReceipt(trx){
+    const transaction = {
+      from: trx.from,
+      to: trx.to,
+      value: trx.value,
+      input: trx.input,
+      gas: trx.gas,
+      gasPrice: trx.gasPrice,
+      hash: trx.hash,
+      nonce: trx.nonce,
+      // maxFeePerGas: params.maxFeePerGas,
+      // maxPriorityFeePerGas: params.maxPriorityFeePerGas,
+    }
+
+    if (trx.returnValues){
+      transaction.from = trx.returnValues.from;
+      transaction.to = trx.returnValues.to;
+      transaction.value = trx.returnValues.value;
+      transaction.hash = trx.transactionHash;
+    }
+
+    const receipt = {
+      transactionHash: trx.hash,
+      transactionIndex: trx.transactionIndex,
+      blockHash: trx.blockHash,
+      blockNumber: trx.blockNumber,
+      from: trx.from,
+      to: trx.to,
+      value: trx.value,
+      contractAddress: trx.contractAddress,
+      cumulativeGasUsed: trx.cumulativeGasUsed,
+      gasUsed: trx.gasUsed,
+      tokenSymbol: trx.tokenSymbol,
+    }
+
+    if (trx.returnValues){
+      receipt.from = trx.returnValues.from;
+      receipt.to = trx.returnValues.to;
+      receipt.value = trx.returnValues.value;
+      receipt.transactionHash = trx.transactionHash;
+      receipt.tokenSymbol = trx.address === config.chain.lmrTokenAddress ? 'LMR' : undefined;
+    }
+
+    return {transaction, receipt}
+  }
+
+  /**
+   * 
+   * @param {string} fromBlock 
+   * @param {string} toBlock 
+   * @param {string} address 
+   * @returns {Promise<string>} lastSyncedBlock
+   */
+  async function getPastCoinTransactions (fromBlock, toBlock, address) {
     const { symbol } = config;
 
-    return indexer.getTransactions(fromBlock, toBlock, address)
-      .then(function (transactions) {
-        debug(`${transactions.length} past ${symbol} transactions retrieved`);
-        return Promise.all(transactions.map(queue.addTransaction(address)))
-          .then(() => toBlock);
-      });
+    const transactions = await indexer.getTransactions(fromBlock, toBlock, address)
+    debug(`${transactions.length} past ${symbol} transactions retrieved`);
+    
+    transactions.forEach((trx) => 
+      queue.addTx(address,null)(mapApiResponseToTrxReceipt(trx))
+    )
+
+    return toBlock;
   }
 
   function getPastEventsWithChunks (options) {

@@ -24,12 +24,23 @@ class Explorer {
    * @param {string} from start block
    * @param {string} to end block
    * @param {string} address wallet address
-   * @returns 
+   * @returns {Promise<any[]>}
    */
   async getTransactions(from, to, address) {
-    const lmrTransactions = await this.invoke('getTokenTransactions', from, to, address, this.lumerin._address)
-    const ethTransactions = await this.invoke('getEthTransactions', from, to, address)
+    const lmrTransactions = await this.invoke('getTokenTransactions', from, to, address, this.lumerin._address, 1, 2)
+    const ethTransactions = await this.invoke('getEthTransactions', from, to, address, 1, 2)
     return [...lmrTransactions, ...ethTransactions]
+  }
+
+  /**
+   * Returns list of transactions for LMR token
+   * @param {string} from start block
+   * @param {string} to end block
+   * @param {string} address wallet address
+   * @returns {Promise<any[]>}
+   */
+  async getETHTransactions(from, to, address) {
+    return await this.invoke('getEthTransactions', from, to, address)
   }
 
   /**
@@ -52,8 +63,8 @@ class Explorer {
         },
       })
       .on('data', (data) => {
-        const { transactionHash } = data
-        stream.emit('data', transactionHash)
+        // const { transactionHash } = data
+        stream.emit('data', data)
       })
       .on('error', (err) => {
         stream.emit('error', err)
