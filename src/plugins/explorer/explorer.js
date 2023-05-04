@@ -5,18 +5,22 @@ const pRetry = require('p-retry');
 const { createBlockscoutApi } = require('./api/blockscout-factory');
 const { createEtherscanApi } = require('./api/etherscan-factory');
 
-const createExplorer = (chainId, web3, lumerin) => {
+const createExplorer = (chainId, web3, lumerin, eventBus) => {
   const etherscanApi = createEtherscanApi(chainId)
   const blockscoutApi = createBlockscoutApi(chainId)
   const apis = [etherscanApi, blockscoutApi];
-  return new Explorer({ apis, lumerin, web3 })
+  return new Explorer({ apis, lumerin, web3, eventBus })
 }
 
 class Explorer {
-  constructor({ apis, lumerin, web3 }) {
+  /** @type {import('contracts-js').LumerinContext} */
+  lumerin = null;
+
+  constructor({ apis, lumerin, web3, eventBus }) {
     this.apis = apis
     this.lumerin = lumerin
     this.web3 = web3
+    this.eventBus = eventBus
   }
 
   /**
@@ -24,12 +28,31 @@ class Explorer {
    * @param {string} from start block
    * @param {string} to end block
    * @param {string} address wallet address
-   * @returns 
+   * @returns {Promise<any[]>}
    */
-  async getTransactions(from, to, address) {
-    const lmrTransactions = await this.invoke('getTokenTransactions', from, to, address, this.lumerin._address)
-    const ethTransactions = await this.invoke('getEthTransactions', from, to, address)
+  async getTransactions(from, to, address, page, pageSize) {
+    const lmrTransactions = await this.invoke('getTokenTransactions', from, to, address, this.lumerin._address, page, pageSize)
+    const ethTransactions = await this.invoke('getEthTransactions', from, to, address, page, pageSize)
+
+    if (page && pageSize) {
+      const hasNextPage = lmrTransactions.length || ethTransactions.length;
+      this.eventBus.emit('transactions-next-page', {
+        hasNextPage: Boolean(hasNextPage),
+        page: page + 1,
+      })
+    }
     return [...lmrTransactions, ...ethTransactions]
+  }
+
+  /**
+   * Returns list of transactions for LMR token
+   * @param {string} from start block
+   * @param {string} to end block
+   * @param {string} address wallet address
+   * @returns {Promise<any[]>}
+   */
+  async getETHTransactions(from, to, address) {
+    return await this.invoke('getEthTransactions', from, to, address)
   }
 
   /**
@@ -52,8 +75,7 @@ class Explorer {
         },
       })
       .on('data', (data) => {
-        const { transactionHash } = data
-        stream.emit('data', transactionHash)
+        stream.emit('data', data)
       })
       .on('error', (err) => {
         stream.emit('error', err)

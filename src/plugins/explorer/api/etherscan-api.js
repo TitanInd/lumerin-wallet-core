@@ -12,9 +12,11 @@ class EtherscanApi {
    * @param {string} to end block
    * @param {string} address wallet address
    * @param {string} tokenAddress  address
+   * @param {number} [page] page number
+   * @param {number} [pageSize] page size
    * @returns {Promise<string[]>} array of transaction hashes
    */
-  async getTokenTransactions(from, to, address, tokenAddress) {
+  async getTokenTransactions(from, to, address, tokenAddress, page = 1, pageSize = 10) {
     const params = {
       module: 'account',
       action: 'tokentx',
@@ -23,13 +25,16 @@ class EtherscanApi {
       startBlock: from,
       endBlock: to,
       address,
+      page,
+      offset: pageSize
     }
     const { data } = await this.api.get('', { params })
     const { status, message, result } = data
     if (status !== '1' && message !== 'No transactions found') {
       throw new Error(result)
     }
-    return result.map((transaction) => transaction.hash)
+
+    return result
   }
 
   /**
@@ -37,9 +42,11 @@ class EtherscanApi {
    * @param {string} from start block
    * @param {string} to end block
    * @param {string} address wallet address
+   * @param {number} [page] page number
+   * @param {number} [pageSize] page size
    * @returns {Promise<string[]>} array of transaction hashes
    */
-  async getEthTransactions(from, to, address) {
+  async getEthTransactions(from, to, address, page = 1, pageSize = 1000) {
     const params = {
       module: 'account',
       action: 'txlist',
@@ -47,6 +54,8 @@ class EtherscanApi {
       startBlock: from,
       endBlock: to,
       address,
+      page,
+      offset: pageSize
     }
 
     const { data } = await this.api.get('', { params })
@@ -55,7 +64,8 @@ class EtherscanApi {
     if (status !== '1' && message !== 'No transactions found') {
       throw new Error(result)
     }
-    return result.map((transaction) => transaction.hash)
+
+    return result
   }
 }
 

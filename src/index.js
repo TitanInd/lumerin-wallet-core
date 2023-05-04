@@ -29,6 +29,10 @@ function createCore () {
     const config = merge({}, givenConfig);
 
     eventBus = new EventEmitter();
+    eventBus.emit = function(eventName, ...args) {
+      debug('[Event] => ', eventName);
+      return EventEmitter.prototype.emit.apply(this, arguments);
+    }
 
     debug.enabled = config.debug;
 
