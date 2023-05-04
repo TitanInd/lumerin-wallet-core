@@ -253,7 +253,6 @@ function createSyncer (config, eventBus, web3, queue, eventsRegistry, indexer) {
 
   return {
     getPastCoinTransactions,
-    getPastEvents,
     refreshAllTransactions,
     stop,
     syncTransactions
