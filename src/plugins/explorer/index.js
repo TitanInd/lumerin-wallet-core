@@ -30,7 +30,7 @@ function createPlugin () {
     const queue = createQueue(config, eventBus, web3);
     const lumerin = Lumerin(web3Subscriptionable, lmrTokenAddress);
 
-    const explorer = createExplorer(config.chainId, web3, lumerin);
+    const explorer = createExplorer(config.chainId, web3, lumerin, eventBus);
 
     syncer = createTransactionSyncer(
       config,
@@ -64,12 +64,14 @@ function createPlugin () {
         refreshTransaction: refreshTransaction(web3, eventsRegistry, queue),
         registerEvent: eventsRegistry.register,
         syncTransactions: syncer.syncTransactions,
-        tryParseEventLog: tryParseEventLog(web3, eventsRegistry)
+        tryParseEventLog: tryParseEventLog(web3, eventsRegistry),
+        getPastCoinTransactions: syncer.getPastCoinTransactions,
       },
       events: [
         'token-transactions-changed',
         'wallet-state-changed',
         'coin-block',
+        'transactions-next-page',
         'indexer-connection-status-changed',
         'wallet-error'
       ],

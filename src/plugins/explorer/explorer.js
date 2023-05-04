@@ -5,18 +5,19 @@ const pRetry = require('p-retry');
 const { createBlockscoutApi } = require('./api/blockscout-factory');
 const { createEtherscanApi } = require('./api/etherscan-factory');
 
-const createExplorer = (chainId, web3, lumerin) => {
+const createExplorer = (chainId, web3, lumerin, eventBus) => {
   const etherscanApi = createEtherscanApi(chainId)
   const blockscoutApi = createBlockscoutApi(chainId)
   const apis = [etherscanApi, blockscoutApi];
-  return new Explorer({ apis, lumerin, web3 })
+  return new Explorer({ apis, lumerin, web3, eventBus })
 }
 
 class Explorer {
-  constructor({ apis, lumerin, web3 }) {
+  constructor({ apis, lumerin, web3, eventBus }) {
     this.apis = apis
     this.lumerin = lumerin
     this.web3 = web3
+    this.eventBus = eventBus
   }
 
   /**
@@ -26,9 +27,17 @@ class Explorer {
    * @param {string} address wallet address
    * @returns {Promise<any[]>}
    */
-  async getTransactions(from, to, address) {
-    const lmrTransactions = await this.invoke('getTokenTransactions', from, to, address, this.lumerin._address, 1, 2)
-    const ethTransactions = await this.invoke('getEthTransactions', from, to, address, 1, 2)
+  async getTransactions(from, to, address, page, pageSize) {
+    const lmrTransactions = await this.invoke('getTokenTransactions', from, to, address, this.lumerin._address, page, pageSize)
+    const ethTransactions = await this.invoke('getEthTransactions', from, to, address, page, pageSize)
+
+    if (page && pageSize) {
+      const hasNextPage = lmrTransactions.length || ethTransactions.length;
+      this.eventBus.emit('transactions-next-page', {
+        hasNextPage: Boolean(hasNextPage),
+        page: page + 1,
+      })
+    }
     return [...lmrTransactions, ...ethTransactions]
   }
 
