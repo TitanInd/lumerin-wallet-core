@@ -5,12 +5,10 @@ const Web3 = require('web3');
 const { Lumerin } = require('contracts-js');
 
 const createEventsRegistry = require('./events');
-const createLogTransaction = require('./log-transaction');
-const { createLogTransactionV2 } = require('./log-transaction-v2');
+const { logTransaction } = require('./log-transaction');
 const createQueue = require('./queue');
 const createStream = require('./blocks-stream');
 const createTransactionSyncer = require('./sync-transactions');
-const refreshTransaction = require('./refresh-transactions');
 const tryParseEventLog = require('./parse-log');
 const createExplorer = require('./explorer');
 
@@ -58,10 +56,8 @@ function createPlugin () {
 
     return {
       api: {
-        // logTransaction: createLogTransaction(queue),
-        logTransaction: createLogTransactionV2(queue),
+        logTransaction: logTransaction(queue),
         refreshAllTransactions: syncer.refreshAllTransactions,
-        refreshTransaction: refreshTransaction(web3, eventsRegistry, queue),
         registerEvent: eventsRegistry.register,
         syncTransactions: syncer.syncTransactions,
         tryParseEventLog: tryParseEventLog(web3, eventsRegistry),

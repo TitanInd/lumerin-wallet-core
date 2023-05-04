@@ -75,7 +75,6 @@ class Explorer {
         },
       })
       .on('data', (data) => {
-        // const { transactionHash } = data
         stream.emit('data', data)
       })
       .on('error', (err) => {

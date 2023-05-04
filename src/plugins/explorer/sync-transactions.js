@@ -58,7 +58,6 @@ function createSyncer (config, eventBus, web3, queue, eventsRegistry, indexer) {
           .then(function (transactions) {
             const { length } = transactions;
             debug(`${length} past ${symbol} transactions retrieved`)
-            // transactions.forEach(queue.addTransaction(address));
             transactions.forEach((transaction) =>{
               queue.addTx(address, null)(mapApiResponseToTrxReceipt(transaction))
             })
@@ -128,7 +127,6 @@ function createSyncer (config, eventBus, web3, queue, eventsRegistry, indexer) {
   }
 
   /**
-   * 
    * @param {string} fromBlock 
    * @param {string} toBlock 
    * @param {string} address 
@@ -146,99 +144,6 @@ function createSyncer (config, eventBus, web3, queue, eventsRegistry, indexer) {
 
     return toBlock;
   }
-
-  function getPastEventsWithChunks (options) {
-    const CHUNK_SIZE = 4000;
-    const {
-      address,
-      contract,
-      eventName,
-      fromBlock,
-      toBlock,
-      filter,
-      metaParser,
-      minBlock = 0,
-      onProgress = noop
-    } = options;
-    const baseFromBlock = Math.max(fromBlock, minBlock);
-    debug('Retrieving from %s to %s in chunks', baseFromBlock, toBlock);
-    let chunkIndex = 0;
-    const getNewFromBlock = index => baseFromBlock + CHUNK_SIZE * index;
-    const getNewToBlock = function (index) {
-      const istLastRequest = baseFromBlock + CHUNK_SIZE * (index + 1) === toBlock;
-      return Math.max(Math.min(baseFromBlock + CHUNK_SIZE * (index + 1) - (istLastRequest ? 0 : 1), toBlock), minBlock);
-    };
-    return pWhilst(
-      function () {
-        const newFromBlock = getNewFromBlock(chunkIndex);
-        const newToBlock = getNewToBlock(chunkIndex);
-        return newFromBlock < newToBlock;
-      },
-      function () {
-        const newFromBlock = getNewFromBlock(chunkIndex);
-        const newToBlock = getNewToBlock(chunkIndex);
-        debug('Retrieving from %s to %s for event %s', newFromBlock, newToBlock, eventName);
-        return pTimeout(
-          contract
-            .getPastEvents(eventName, {
-              fromBlock: newFromBlock,
-              toBlock: newToBlock,
-              filter
-            })
-            .then(function (events) {
-              debug(`${events.length} past ${eventName} events retrieved`)
-              return Promise.all(
-                events.map(queue.addEvent(address, metaParser))
-              );
-            })
-            .then(function () {
-              debug('Retrieved from %s to %s for event %s', newFromBlock, newToBlock, eventName);
-              chunkIndex++;
-              return onProgress(newToBlock);
-            })
-          ,
-          1000 * 60 * 2
-        );
-      });
-  }
-
-  const getPastEvents = (fromBlock, toBlock, address, onProgress) =>
-    pAll(
-      eventsRegistry
-        .getAll()
-        .map(function (registration) {
-          const {
-            contractAddress,
-            abi,
-            eventName,
-            filter,
-            metaParser,
-            minBlock = 0
-          } = registration(address);
-
-          const contract = new web3.eth.Contract(abi, contractAddress);
-
-          // Ignore missing events
-          if (!contract.events[eventName]) {
-            debug(`Could not get past events for ${eventName}`);
-            return null;
-          }
-          return () =>
-            getPastEventsWithChunks({
-              address,
-              contract,
-              eventName,
-              fromBlock,
-              toBlock,
-              filter,
-              minBlock,
-              onProgress,
-              metaParser
-            })
-        })
-        .filter(identity),
-      { concurrency: 3 }
-    );
 
   const subscriptions = [];
 
@@ -319,10 +224,7 @@ function createSyncer (config, eventBus, web3, queue, eventsRegistry, indexer) {
         debug('Syncing', fromBlock, bestBlock);
         subscribeCoinTransactions(bestBlock, address);
         subscribeEvents(bestBlock, address);
-        return Promise.all([
-          getPastCoinTransactions(fromBlock, bestBlock, address, page, pageSize),
-          getPastEvents(fromBlock, bestBlock, address, onProgress)
-        ]);
+        return getPastCoinTransactions(fromBlock, bestBlock, address, page, pageSize)
       })
       .then(function ([syncedBlock]) {
         bestBlock = syncedBlock;
@@ -332,13 +234,9 @@ function createSyncer (config, eventBus, web3, queue, eventsRegistry, indexer) {
   const refreshAllTransactions = address =>
     gotBestBlockPromise
       .then(() => {
-        return Promise.all([
-          getPastCoinTransactions(0, bestBlock, address),
-          getPastEvents(0, bestBlock, address, function (syncedBlock) { bestBlock = syncedBlock })
-        ])
+        return getPastCoinTransactions(0, bestBlock, address)
           .then(function ([syncedBlock]) {
             bestBlock = syncedBlock;
-
             return syncedBlock;
           })
         });
