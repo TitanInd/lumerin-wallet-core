@@ -48,7 +48,7 @@ class BlockscoutApi {
    * @param {number} [pageSize] page size
    * @returns {Promise<string[]>} array of transaction hashes
    */
-  async getEthTransactions(from, to, address, page = 1, pageSize = 10) {
+  async getEthTransactions(from, to, address, page = 1, pageSize = 1000) {
     const params = {
       module: 'account',
       action: 'txlist',

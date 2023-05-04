@@ -134,10 +134,10 @@ function createSyncer (config, eventBus, web3, queue, eventsRegistry, indexer) {
    * @param {string} address 
    * @returns {Promise<string>} lastSyncedBlock
    */
-  async function getPastCoinTransactions (fromBlock, toBlock, address) {
+  async function getPastCoinTransactions (fromBlock, toBlock, address, page, pageSize) {
     const { symbol } = config;
 
-    const transactions = await indexer.getTransactions(fromBlock, toBlock, address)
+    const transactions = await indexer.getTransactions(fromBlock, toBlock || bestBlock, address, page, pageSize)
     debug(`${transactions.length} past ${symbol} transactions retrieved`);
     
     transactions.forEach((trx) => 
@@ -313,14 +313,14 @@ function createSyncer (config, eventBus, web3, queue, eventsRegistry, indexer) {
     });
   }
 
-  const syncTransactions = (fromBlock, address, onProgress) =>
+  const syncTransactions = (fromBlock, address, onProgress, page, pageSize) =>
     gotBestBlockPromise
       .then(function () {
         debug('Syncing', fromBlock, bestBlock);
         subscribeCoinTransactions(bestBlock, address);
         subscribeEvents(bestBlock, address);
         return Promise.all([
-          getPastCoinTransactions(fromBlock, bestBlock, address),
+          getPastCoinTransactions(fromBlock, bestBlock, address, page, pageSize),
           getPastEvents(fromBlock, bestBlock, address, onProgress)
         ]);
       })
