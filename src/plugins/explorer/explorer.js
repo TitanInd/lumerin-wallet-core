@@ -13,6 +13,9 @@ const createExplorer = (chainId, web3, lumerin, eventBus) => {
 }
 
 class Explorer {
+  /** @type {import('contracts-js').LumerinContext} */
+  lumerin = null;
+
   constructor({ apis, lumerin, web3, eventBus }) {
     this.apis = apis
     this.lumerin = lumerin
