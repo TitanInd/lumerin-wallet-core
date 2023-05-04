@@ -81,6 +81,19 @@ class Explorer {
         stream.emit('error', err)
       })
 
+    this.lumerin.events
+      .Transfer({
+        filter: {
+          from: address,
+        },
+      })
+      .on('data', (data) => {
+        stream.emit('data', data)
+      })
+      .on('error', (err) => {
+        stream.emit('error', err)
+      })
+
     setInterval(() => {
       stream.emit('resync')
     }, 60000)
