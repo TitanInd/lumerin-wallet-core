@@ -175,9 +175,7 @@ function createQueue(config, eventBus, web3) {
           )
         )
       })
-      .catch(function (err) {
-        console.error("in emitPendingEvents", err)
-        
+      .catch(function (err) {        
         eventBus.emit('wallet-error', {
           inner: err,
           message: 'Could not emit event transaction',
@@ -189,32 +187,35 @@ function createQueue(config, eventBus, web3) {
       })
   }
 
-  function emitPendingEventsV2(address, eventData) {
-    // const eventsToEmit = events.filter((e) => e.address === address)
-    // const eventsToKeep = pendingEvents.filter((e) => e.address !== address)
-    // pendingEvents = eventsToKeep
+  /**
+   * 
+   * @param {string} address 
+   * @param {any[]} eventsData 
+   * @returns {void}
+   */
+  function emitPendingEventsV2(address, eventsData) {
+    const transactionItems = eventsData.map((eventData) => ({
+      transaction: eventData.event.transaction,
+      receipt: eventData.event.receipt,
+      meta: mergeEvents(eventData.event.receipt.transactionHash, [eventData]),
+      done: eventData.done
+    }))
 
-    // const grouped = groupBy(eventsToEmit, 'event.transactionHash')
+    const err = tryEmitTransactions(address, transactionItems)
 
-    const transaction =  {
-        transaction: eventData.event.transaction,
-        receipt: eventData.event.receipt,
-        meta: mergeEvents(eventData.event.receipt.transactionHash, [eventData]),
-        done: eventData.done
-    }
+    transactionItems.forEach(async function (transaction) {
+      transaction.done(err)
+    })
 
-    const err = tryEmitTransactions(address, [transaction])
-    
-    return transaction.done(err)
-      .catch(function (err) {
-        console.error("in emitPendingEventsV2", err)
-        eventBus.emit('wallet-error', {
-          inner: err,
-          message: 'Could not emit event transaction',
-          meta: { plugin: 'explorer' },
-        })
-        return transaction.done(err)
+    if (err){
+      eventBus.emit('wallet-error', {
+        inner: err,
+        message: 'Could not emit event transaction',
+        meta: { plugin: 'explorer' },
       })
+    }
+    
+    return
   }
 
   const debouncedEmitPendingEvents = debounce(
@@ -246,7 +247,20 @@ function createQueue(config, eventBus, web3) {
         done: (err) => (err ? reject(err) : resolve()),
       }
 
-      emitPendingEventsV2(address, event)
+      emitPendingEventsV2(address, [event])
+    })
+  }
+
+  const addTxs = (address, metaParser) => (txAndReceipts) => {
+    return new Promise(function (resolve, reject) {
+      const events = txAndReceipts.map((txAndReceipt) => ({
+        address,
+        event: txAndReceipt,
+        metaParser: () => metaParser || {},
+        done: (err) => (err ? reject(err) : resolve()),
+      }))
+
+      emitPendingEventsV2(address, events)
     })
   }
 
@@ -268,6 +282,7 @@ function createQueue(config, eventBus, web3) {
     addEvent,
     addTransaction,
     addTx,
+    addTxs,
   }
 }
 

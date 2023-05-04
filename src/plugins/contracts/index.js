@@ -59,7 +59,7 @@ function createPlugin() {
           })
         })
         .catch(function (error) {
-          console.log('Could not sync contracts/events', error.stack)
+          debug('Could not sync contracts/events', error.stack)
           throw error
         })
     }

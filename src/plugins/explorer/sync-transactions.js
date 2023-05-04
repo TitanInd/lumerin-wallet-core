@@ -1,11 +1,6 @@
 'use strict';
 
-const { identity } = require('lodash');
 const debug = require('debug')('lmr-wallet:core:explorer:syncer');
-const pAll = require('p-all');
-const pWhilst = require('p-whilst');
-const pTimeout = require('p-timeout');
-const noop = require('lodash/noop');
 
 // eslint-disable-next-line max-params
 function createSyncer (config, eventBus, web3, queue, eventsRegistry, indexer) {
@@ -137,10 +132,8 @@ function createSyncer (config, eventBus, web3, queue, eventsRegistry, indexer) {
 
     const transactions = await indexer.getTransactions(fromBlock, toBlock || bestBlock, address, page, pageSize)
     debug(`${transactions.length} past ${symbol} transactions retrieved`);
-    
-    transactions.forEach((trx) => 
-      queue.addTx(address,null)(mapApiResponseToTrxReceipt(trx))
-    )
+
+    queue.addTxs(address, null)(transactions.map(mapApiResponseToTrxReceipt))
 
     return toBlock;
   }
@@ -226,7 +219,7 @@ function createSyncer (config, eventBus, web3, queue, eventsRegistry, indexer) {
         subscribeEvents(bestBlock, address);
         return getPastCoinTransactions(fromBlock, bestBlock, address, page, pageSize)
       })
-      .then(function ([syncedBlock]) {
+      .then(function (syncedBlock) {
         bestBlock = syncedBlock;
         return syncedBlock;
       });
@@ -253,7 +246,6 @@ function createSyncer (config, eventBus, web3, queue, eventsRegistry, indexer) {
 
   return {
     getPastCoinTransactions,
-    getPastEvents,
     refreshAllTransactions,
     stop,
     syncTransactions
