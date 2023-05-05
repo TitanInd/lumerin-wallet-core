@@ -52,10 +52,9 @@ function createSyncer (config, eventBus, web3, queue, eventsRegistry, indexer) {
         indexer.getETHTransactions(bestSyncBlock, number, address)
           .then(function (transactions) {
             const { length } = transactions;
-            debug(`${length} past ${symbol} transactions retrieved`)
-            transactions.forEach((transaction) =>{
-              queue.addTx(address, null)(mapApiResponseToTrxReceipt(transaction))
-            })
+            debug(`${length} past ETH transactions retrieved`)
+            const txs = transactions.map(mapApiResponseToTrxReceipt)
+            queue.addTxs(address,null)(txs)
             bestSyncBlock = number;
           })
           .catch(function (err) {
@@ -85,6 +84,7 @@ function createSyncer (config, eventBus, web3, queue, eventsRegistry, indexer) {
       gasPrice: trx.gasPrice,
       hash: trx.hash,
       nonce: trx.nonce,
+      logIndex: trx.logIndex, // emitted only in events, used to differentiate between LMR transfers within one transaction 
       // maxFeePerGas: params.maxFeePerGas,
       // maxPriorityFeePerGas: params.maxPriorityFeePerGas,
     }
