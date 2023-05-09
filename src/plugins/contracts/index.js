@@ -89,7 +89,7 @@ function createPlugin() {
       api: {
         refreshContracts: refreshContracts(web3, lumerin, cloneFactory),
         createContract: createContract(web3, cloneFactory, plugins),
-        cancelContract: cancelContract(web3, cloneFactory),
+        cancelContract: cancelContract(web3),
         purchaseContract: purchaseContract(web3, cloneFactory, lumerin),
         setContractAsDead: setContractAsDead(
           web3,
