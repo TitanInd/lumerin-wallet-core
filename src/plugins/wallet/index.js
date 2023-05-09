@@ -1,7 +1,6 @@
 'use strict';
 
 const debug = require('debug')('lmr-wallet:core:wallet');
-const { add } = require('lodash');
 const Web3 = require('web3');
 
 const api = require('./api');
@@ -25,7 +24,7 @@ function createPlugin () {
         .catch(function (err) {
           eventBus.emit('wallet-error', {
             inner: err,
-            message: `Could not get ${config.symbol} balance`,
+            message: `Could not get ETH balance`,
             meta: { plugin: 'wallet' }
           })
         });

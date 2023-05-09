@@ -133,8 +133,8 @@ function createQueue(config, eventBus, web3) {
         .filter((i) => !!i)
     })
 
-    // eventBus.emit('eth-tx');
-    // eventBus.emit('lmr-tx');
+    eventBus.emit('eth-tx');
+    eventBus.emit('lmr-tx');
   }
 
   function tryEmitTransactions(address, transactions) {

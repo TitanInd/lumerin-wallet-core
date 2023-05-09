@@ -22,7 +22,7 @@ function createSyncer (config, eventBus, web3, queue, eventsRegistry, indexer) {
 
     const { symbol, displayName } = config;
 
-    // LMN transactions
+    // LMR transactions
     indexer.getTransactionStream(address)
       .on('data', (data)=>{
         queue.addTx(address, null)(mapApiResponseToTrxReceipt(data))

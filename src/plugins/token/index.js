@@ -24,10 +24,6 @@ function createPlugin () {
           eventBus.emit('token-balance-changed', {
             lmrBalance: balance,
           });
-
-          eventBus.emit('token-contract-received', {
-            contract: Lumerin.address
-          });
         })
         .catch(function (err) {
           eventBus.emit('wallet-error', {
@@ -40,7 +36,6 @@ function createPlugin () {
 
     eventBus.on('open-wallet', function ({ address }) {
       walletAddress = address;
-
       emitLmrBalance(address);
     });
 
