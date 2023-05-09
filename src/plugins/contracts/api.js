@@ -1,4 +1,3 @@
-
 const debug = require('debug')('lmr-wallet:core:contracts:api')
 const { encrypt } = require('ecies-geth')
 const { Implementation } = require('contracts-js')
@@ -56,12 +55,19 @@ async function _loadContractInstance(web3, implementationAddress) {
  * @param {import('web3').default} web3
  * @param {import('web3').default} web3Subscriptionable
  * @param {import('contracts-js').LumerinContext} lumerin
+ * @param {import('contracts-js').CloneFactoryContext} cloneFactory
  * @param {string[]} addresses
  */
-async function getContracts(web3, web3Subscriptionable, lumerin, addresses) {
+async function getContracts(
+  web3,
+  web3Subscriptionable,
+  lumerin,
+  cloneFactory,
+  addresses
+) {
   return Promise.all(
-    addresses.map(async (address) => 
-      getContract(web3, web3Subscriptionable, lumerin, address)
+    addresses.map(async (address) =>
+      getContract(web3, web3Subscriptionable, lumerin, cloneFactory, address)
     )
   )
 }
@@ -72,17 +78,28 @@ async function getContracts(web3, web3Subscriptionable, lumerin, addresses) {
  * @param {import('contracts-js').LumerinContext} lumerin
  * @param {string} contractId
  */
-async function getContract(web3, web3Subscriptionable, lumerin, contractId) {
+async function getContract(
+  web3,
+  web3Subscriptionable,
+  lumerin,
+  cloneFactory,
+  contractId
+) {
   const contractEventsListener = ContractEventsListener.getInstance()
-  const [contractInstance, balance] = await Promise.all([
+  const [contractInstance, balance, isDead] = await Promise.all([
     _loadContractInstance(web3, contractId),
     lumerin.methods.balanceOf(contractId).call(),
-  ]);
+    cloneFactory.methods.isContractDead(contractId).call(),
+  ])
 
-  contractEventsListener.addContract(contractInstance.data.id, Implementation(web3Subscriptionable, contractId))
+  contractEventsListener.addContract(
+    contractInstance.data.id,
+    Implementation(web3Subscriptionable, contractId)
+  )
   return {
     ...contractInstance.data,
     balance,
+    isDead,
   }
 }
 
@@ -161,12 +178,43 @@ function cancelContract(web3) {
     web3.eth.accounts.wallet.create(0).add(account)
 
     return await Implementation(web3, contractId)
-      .methods
-      .setContractCloseOut(closeOutType)
+      .methods.setContractCloseOut(closeOutType)
       .send({
         from: walletAddress,
         gas: gasLimit,
       })
+  }
+}
+
+/**
+ * @param {import('web3').default} web3
+ * @param {import('contracts-js').CloneFactoryContext} cloneFactory
+ */
+function setContractAsDead(web3, cloneFactory, onUpdate) {
+  if (!web3) {
+    debug('Not a valid Web3 instance')
+    return
+  }
+
+  return async function (params) {
+    const { walletAddress, gasLimit = 1000000, contractId, privateKey } = params
+
+    const account = web3.eth.accounts.privateKeyToAccount(privateKey)
+    web3.eth.accounts.wallet.create(0).add(account)
+
+    const isDead = await cloneFactory.methods.isContractDead(contractId).call()
+    if (isDead) {
+      return true
+    }
+
+    const result = await cloneFactory.methods
+      .setContractAsDead(contractId, false)
+      .send({
+        from: walletAddress,
+        gas: gasLimit,
+      })
+    onUpdate(contractId).catch(err => debug(`Failed to refresh after setContractAsDead: ${err}`));
+    return result
   }
 }
 
@@ -184,6 +232,7 @@ function purchaseContract(web3, cloneFactory, lumerin) {
 
     //getting pubkey from contract to be purchased
     const implementationContract = Implementation(web3, contractId)
+
     const pubKey = await implementationContract.methods.pubKey().call()
 
     //encrypting plaintext url parameter
@@ -194,6 +243,11 @@ function purchaseContract(web3, cloneFactory, lumerin) {
 
     const account = web3.eth.accounts.privateKeyToAccount(privateKey)
     web3.eth.accounts.wallet.create(0).add(account)
+
+    const isDead = await cloneFactory.methods.isContractDead(contractId).call()
+    if (isDead) {
+      throw new Error('Contract is deleted already')
+    }
 
     await lumerin.methods
       .increaseAllowance(cloneFactory.options.address, price + price * 0.01)
@@ -213,4 +267,5 @@ module.exports = {
   createContract,
   cancelContract,
   purchaseContract,
+  setContractAsDead,
 }
