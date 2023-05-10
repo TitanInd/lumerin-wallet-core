@@ -15,6 +15,7 @@ const {
   createContract,
   cancelContract,
   purchaseContract,
+  setContractAsDead,
 } = require('./api')
 const { ContractEventsListener } = require('./events-listener')
 
@@ -35,29 +36,41 @@ function createPlugin() {
     const { eth } = plugins
 
     const web3 = new Web3(eth.web3Provider)
-    const web3Subscriptionable = new Web3(plugins.eth.web3SubscriptionProvider);
-  
+    const web3Subscriptionable = new Web3(plugins.eth.web3SubscriptionProvider)
+
     const lumerin = Lumerin(web3, lmrTokenAddress)
     const cloneFactory = CloneFactory(web3, cloneFactoryAddress)
-    const cloneFactorySubscriptionable = CloneFactory(web3Subscriptionable, cloneFactoryAddress)
+    const cloneFactorySubscriptionable = CloneFactory(
+      web3Subscriptionable,
+      cloneFactoryAddress
+    )
 
-    const refreshContracts = (web3, lumerin, cloneFactory) => async (contractId) => {
-      eventBus.emit('contracts-scan-started', {})
+    const refreshContracts =
+      (web3, lumerin, cloneFactory) => async (contractId) => {
+        eventBus.emit('contracts-scan-started', {})
 
-      const addresses = contractId ? [contractId] : await cloneFactory.methods
-        .getContractList()
-        .call()
-        .catch((error) => {
-          debug('cannot get list of contract addresses:', error)
-          throw error
-        })
+        const addresses = contractId
+          ? [contractId]
+          : await cloneFactory.methods
+              .getContractList()
+              .call()
+              .catch((error) => {
+                debug('cannot get list of contract addresses:', error)
+                throw error
+              })
 
-      return getContracts(web3, web3Subscriptionable, lumerin, addresses)
-        .then((contracts) => {
-          eventBus.emit('contracts-scan-finished', {
-            actives: contracts,
+        return getContracts(
+          web3,
+          web3Subscriptionable,
+          lumerin,
+          cloneFactory,
+          addresses
+        )
+          .then((contracts) => {
+            eventBus.emit('contracts-scan-finished', {
+              actives: contracts,
+            })
           })
-        })
         .catch(function (error) {
           debug('Could not sync contracts/events', error.stack)
           throw error
@@ -67,11 +80,10 @@ function createPlugin() {
     const contractEventsListener = ContractEventsListener.create(
       cloneFactorySubscriptionable,
       config.debug
-    );
-
-    contractEventsListener.setOnUpdate(
-      refreshContracts(web3, lumerin, cloneFactory)
     )
+
+    const onUpdate = refreshContracts(web3, lumerin, cloneFactory)
+    contractEventsListener.setOnUpdate(onUpdate)
 
     return {
       api: {
@@ -79,8 +91,17 @@ function createPlugin() {
         createContract: createContract(web3, cloneFactory, plugins),
         cancelContract: cancelContract(web3),
         purchaseContract: purchaseContract(web3, cloneFactory, lumerin),
+        setContractAsDead: setContractAsDead(
+          web3,
+          cloneFactory,
+          onUpdate,
+        ),
       },
-      events: ['contracts-scan-started', 'contracts-scan-finished', 'contract-updated'],
+      events: [
+        'contracts-scan-started',
+        'contracts-scan-finished',
+        'contract-updated',
+      ],
       name: 'contracts',
     }
   }
