@@ -1,7 +1,8 @@
 'use strict';
 
 const { merge, union } = require('lodash');
-const debug = require('debug')('lmr-wallet:core');
+const debugInstance = require('debug');
+const debug = debugInstance('lmr-wallet:core');
 const EventEmitter = require('events');
 
 const pluginCreators = [
@@ -27,14 +28,16 @@ function createCore () {
     }
 
     const config = merge({}, givenConfig);
+    
+    if(!config.debug) {
+      debugInstance.disable();
+    }
 
     eventBus = new EventEmitter();
     eventBus.emit = function(eventName, ...args) {
       debug('[Event] => ', eventName);
       return EventEmitter.prototype.emit.apply(this, arguments);
     }
-
-    debug.enabled = config.debug;
 
     debug('Wallet core starting', config);
 
