@@ -17,15 +17,17 @@ async function _loadContractInstance(web3, implementationAddress) {
       .call()
 
     const {
-      0: state,
-      1: price, // cost to purchase the contract
-      2: limit, // max th provided
-      3: speed, // th/s of contract
-      4: length, // duration of the contract in seconds
-      5: timestamp, // timestamp of the block at moment of purchase
-      6: buyer, // wallet address of the purchasing party
-      7: seller, // wallet address of the selling party
-      8: encryptedPoolData, // encrypted data for pool target info
+      _state: state,
+      _price: price, // cost to purchase the contract
+      _limit: limit, // max th provided
+      _speed: speed, // th/s of contract
+      _length: length, // duration of the contract in seconds
+      _startingBlockTimestamp: timestamp, // timestamp of the block at moment of purchase
+      _buyer: buyer, // wallet address of the purchasing party
+      _seller: seller, // wallet address of the selling party
+      _encryptedPoolData: encryptedPoolData, // encrypted data for pool target info,
+      _isDeleted: isDead, // check if contract is dead
+      _balance: balance
     } = contract
 
     return {
@@ -40,6 +42,8 @@ async function _loadContractInstance(web3, implementationAddress) {
         state,
         encryptedPoolData,
         limit,
+        isDead,
+        balance
       },
     }
   } catch (err) {
@@ -86,21 +90,13 @@ async function getContract(
   contractId
 ) {
   const contractEventsListener = ContractEventsListener.getInstance()
-  const [contractInstance, balance, isDead] = await Promise.all([
-    _loadContractInstance(web3, contractId),
-    lumerin.methods.balanceOf(contractId).call(),
-    cloneFactory.methods.isContractDead(contractId).call(),
-  ])
+  const contractInfo = await _loadContractInstance(web3, contractId)
 
   contractEventsListener.addContract(
-    contractInstance.data.id,
+    contractInfo.data.id,
     Implementation(web3Subscriptionable, contractId)
   )
-  return {
-    ...contractInstance.data,
-    balance,
-    isDead,
-  }
+  return contractInfo.data;
 }
 
 /**
@@ -202,13 +198,13 @@ function setContractAsDead(web3, cloneFactory, onUpdate) {
     const account = web3.eth.accounts.privateKeyToAccount(privateKey)
     web3.eth.accounts.wallet.create(0).add(account)
 
-    const isDead = await cloneFactory.methods.isContractDead(contractId).call()
+    const { isDead } = await _loadContractInstance(web3, contractId)
     if (isDead) {
       return true
     }
 
     const result = await cloneFactory.methods
-      .setContractAsDead(contractId, false)
+      .setContractDeleted(contractId, true)
       .send({
         from: walletAddress,
         gas: gasLimit,
@@ -244,7 +240,7 @@ function purchaseContract(web3, cloneFactory, lumerin) {
     const account = web3.eth.accounts.privateKeyToAccount(privateKey)
     web3.eth.accounts.wallet.create(0).add(account)
 
-    const isDead = await cloneFactory.methods.isContractDead(contractId).call()
+    const { isDead } = await _loadContractInstance(web3, contractId)
     if (isDead) {
       throw new Error('Contract is deleted already')
     }
