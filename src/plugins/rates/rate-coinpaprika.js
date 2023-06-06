@@ -3,13 +3,13 @@ const axios = require('axios').default
 
 /**
  * Returns ETH and LMR prices in USD from coingecko api
- * @returns {Promise<{ LMR: number, ETH: number}>}
+ * @returns {Promise<{ LMR: number, ETH: number, BTC: number}>}
  */
 const getRateCoinpaprika = async () => {
   const baseUrl = 'https://api.coinpaprika.com'
 
-  const [LMR, ETH] = await Promise.all(
-    ['lmr-lumerin', 'eth-ethereum'].map(async (coin) => {
+  const [LMR, ETH, BTC] = await Promise.all(
+    ['lmr-lumerin', 'eth-ethereum', 'btc-bitcoin'].map(async (coin) => {
       const res = await axios.get(`${baseUrl}/v1/tickers/${coin}`)
       const price = res?.data?.quotes?.USD?.price
       if (!price) {
@@ -21,7 +21,7 @@ const getRateCoinpaprika = async () => {
     })
   )
 
-  return { LMR, ETH }
+  return { LMR, ETH, BTC }
 }
 
 module.exports = { getRateCoinpaprika }
