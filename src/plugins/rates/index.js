@@ -1,6 +1,7 @@
 'use strict'
 
 const debug = require('debug')('lmr-wallet:core:rates')
+const { getNetworkDifficulty } = require('./network-difficulty')
 const { getRate } = require('./rate')
 const createStream = require('./stream')
 
@@ -11,6 +12,7 @@ const createStream = require('./stream')
  */
 function createPlugin() {
   let dataStream
+  let networkDifficultyStream
 
   /**
    * Start the plugin instance.
@@ -50,8 +52,24 @@ function createPlugin() {
       })
     })
 
+    networkDifficultyStream = createStream(getNetworkDifficulty, ratesUpdateMs)
+
+    networkDifficultyStream.on('data', function (difficulty) {
+      eventBus.emit('network-difficulty-updated', {
+        difficulty,
+      })
+    })
+
+    networkDifficultyStream.on('error', function (err) {
+      eventBus.emit('wallet-error', {
+        inner: err,
+        message: `Could not get network difficulty`,
+        meta: { plugin: 'rates' },
+      })
+    })
+
     return {
-      events: ['coin-price-updated', 'wallet-error'],
+      events: ['coin-price-updated', 'wallet-error', 'network-difficulty-updated'],
     }
   }
 
@@ -62,6 +80,7 @@ function createPlugin() {
     debug('Plugin stopping')
 
     dataStream.destroy()
+    networkDifficultyStream.destroy()
   }
 
   return {

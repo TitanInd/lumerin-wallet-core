@@ -3,13 +3,13 @@ const axios = require('axios').default
 
 /**
  * Returns ETH and LMR prices in USD from coingecko api
- * @returns {Promise<{ LMR: number, ETH: number}>}
+ * @returns {Promise<{ LMR: number, ETH: number, BTC: number}>}
  */
 const getRateKucoin = async () => {
   const baseUrl = 'https://api.kucoin.com/api'
 
-  const [LMR, ETH] = await Promise.all(
-    ['LMR-USDT', 'ETH-USDT'].map(async (pair) => {
+  const [LMR, ETH, BTC] = await Promise.all(
+    ['LMR-USDT', 'ETH-USDT', 'BTC-USDC'].map(async (pair) => {
       const res = await axios.get(`${baseUrl}/v1/market/orderbook/level1`, {
         params: {
           symbol: pair,
@@ -26,7 +26,7 @@ const getRateKucoin = async () => {
     })
   )
 
-  return { LMR, ETH }
+  return { LMR, ETH, BTC }
 }
 
 module.exports = { getRateKucoin }
