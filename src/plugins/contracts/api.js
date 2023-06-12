@@ -193,31 +193,31 @@ function cancelContract(web3) {
  * @param {import('web3').default} web3
  * @param {import('contracts-js').CloneFactoryContext} cloneFactory
  */
-function setContractAsDead(web3, cloneFactory, onUpdate) {
+function setContractDeleteStatus(web3, cloneFactory, onUpdate) {
   if (!web3) {
     debug('Not a valid Web3 instance')
     return
   }
 
   return async function (params) {
-    const { walletAddress, gasLimit = 1000000, contractId, privateKey } = params
+    const { walletAddress, gasLimit = 1000000, contractId, privateKey, deleteContract } = params
 
     const account = web3.eth.accounts.privateKeyToAccount(privateKey)
     web3.eth.accounts.wallet.create(0).add(account)
 
     const { isDead } = await _loadContractInstance(web3, contractId)
-    if (isDead) {
+    if (Boolean(isDead) === Boolean(deleteContract)) {
       return true
     }
 
     const result = await cloneFactory.methods
-      .setContractDeleted(contractId, true)
+      .setContractDeleted(contractId, deleteContract)
       .send({
         from: walletAddress,
         gas: gasLimit,
       })
     onUpdate(contractId).catch((err) =>
-      debug(`Failed to refresh after setContractAsDead: ${err}`)
+      debug(`Failed to refresh after setContractDeadStatus: ${err}`)
     )
     return result
   }
@@ -272,5 +272,5 @@ module.exports = {
   createContract,
   cancelContract,
   purchaseContract,
-  setContractAsDead,
+  setContractDeleteStatus,
 }

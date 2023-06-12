@@ -15,7 +15,7 @@ const {
   createContract,
   cancelContract,
   purchaseContract,
-  setContractAsDead,
+  setContractDeleteStatus,
 } = require('./api')
 const { ContractEventsListener } = require('./events-listener')
 
@@ -91,7 +91,7 @@ function createPlugin() {
         createContract: createContract(web3, cloneFactory, plugins),
         cancelContract: cancelContract(web3),
         purchaseContract: purchaseContract(web3, cloneFactory, lumerin),
-        setContractAsDead: setContractAsDead(
+        setContractDeleteStatus: setContractDeleteStatus(
           web3,
           cloneFactory,
           onUpdate,
