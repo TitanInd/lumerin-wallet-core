@@ -15,6 +15,9 @@ async function _loadContractInstance(web3, implementationAddress) {
     const contract = await implementationContract.methods
       .getPublicVariables()
       .call()
+    const stats = await implementationContract.methods.getStats().call()
+
+    const { _successCount: successCount, _failCount: failCount } = stats
 
     const {
       _state: state,
@@ -27,7 +30,7 @@ async function _loadContractInstance(web3, implementationAddress) {
       _seller: seller, // wallet address of the selling party
       _encryptedPoolData: encryptedPoolData, // encrypted data for pool target info,
       _isDeleted: isDead, // check if contract is dead
-      _balance: balance
+      _balance: balance,
     } = contract
 
     return {
@@ -43,7 +46,11 @@ async function _loadContractInstance(web3, implementationAddress) {
         encryptedPoolData,
         limit,
         isDead,
-        balance
+        balance,
+        stats: {
+          successCount,
+          failCount
+        }
       },
     }
   } catch (err) {
@@ -96,7 +103,7 @@ async function getContract(
     contractInfo.data.id,
     Implementation(web3Subscriptionable, contractId)
   )
-  return contractInfo.data;
+  return contractInfo.data
 }
 
 /**
@@ -209,7 +216,9 @@ function setContractAsDead(web3, cloneFactory, onUpdate) {
         from: walletAddress,
         gas: gasLimit,
       })
-    onUpdate(contractId).catch(err => debug(`Failed to refresh after setContractAsDead: ${err}`));
+    onUpdate(contractId).catch((err) =>
+      debug(`Failed to refresh after setContractAsDead: ${err}`)
+    )
     return result
   }
 }
