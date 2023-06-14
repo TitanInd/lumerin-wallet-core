@@ -205,7 +205,7 @@ function setContractDeleteStatus(web3, cloneFactory, onUpdate) {
     const account = web3.eth.accounts.privateKeyToAccount(privateKey)
     web3.eth.accounts.wallet.create(0).add(account)
 
-    const { isDead } = await _loadContractInstance(web3, contractId)
+    const { data: { isDead } } = await _loadContractInstance(web3, contractId)
     if (Boolean(isDead) === Boolean(deleteContract)) {
       return true
     }
