@@ -2,13 +2,10 @@
 
 const EventEmitter = require('events')
 const pRetry = require('p-retry');
-const { createBlockscoutApi } = require('./api/blockscout-factory');
-const { createEtherscanApi } = require('./api/etherscan-factory');
+const { createExplorerApis } = require('./api/factory');
 
 const createExplorer = (chainId, web3, lumerin, eventBus) => {
-  const etherscanApi = createEtherscanApi(chainId)
-  const blockscoutApi = createBlockscoutApi(chainId)
-  const apis = [etherscanApi, blockscoutApi];
+  const apis = createExplorerApis(chainId);
   return new Explorer({ apis, lumerin, web3, eventBus })
 }
 

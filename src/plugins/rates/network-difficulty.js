@@ -9,9 +9,9 @@ const debug = require('debug')('lmr-wallet:getDifficulty')
  */
 const getNetworkDifficulty = async () => {
   try {
-    const baseUrl = 'https://api-r.bitcoinchain.com'
-    const res = await axios.get(`${baseUrl}/v1/status`)
-    return res?.data?.difficulty
+    const baseUrl = 'https://blockchain.info'
+    const res = await axios.get(`${baseUrl}/q/getdifficulty`)
+    return res?.data
   } catch (err) {
     debug(err)
   }
