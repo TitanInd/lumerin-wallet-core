@@ -49,8 +49,8 @@ async function _loadContractInstance(web3, implementationAddress) {
         balance,
         stats: {
           successCount,
-          failCount
-        }
+          failCount,
+        },
       },
     }
   } catch (err) {
@@ -143,19 +143,16 @@ function createContract(web3, cloneFactory, plugins) {
     const account = web3.eth.accounts.privateKeyToAccount(privateKey)
     web3.eth.accounts.wallet.create(0).add(account)
 
-    return plugins.explorer.logTransaction(
-      cloneFactory.methods
-        .setCreateNewRentalContract(
-          price,
-          limit,
-          speed,
-          duration,
-          validatorAddress,
-          pubKey.toString('hex')
-        )
-        .send({ from: sellerAddress, gas: 500000 }),
-      sellerAddress
-    )
+    return cloneFactory.methods
+      .setCreateNewRentalContract(
+        price,
+        limit,
+        speed,
+        duration,
+        validatorAddress,
+        pubKey.toString('hex')
+      )
+      .send({ from: sellerAddress, gas: 500000 })
   }
 }
 
@@ -200,12 +197,20 @@ function setContractDeleteStatus(web3, cloneFactory, onUpdate) {
   }
 
   return async function (params) {
-    const { walletAddress, gasLimit = 1000000, contractId, privateKey, deleteContract } = params
+    const {
+      walletAddress,
+      gasLimit = 1000000,
+      contractId,
+      privateKey,
+      deleteContract,
+    } = params
 
     const account = web3.eth.accounts.privateKeyToAccount(privateKey)
     web3.eth.accounts.wallet.create(0).add(account)
 
-    const { data: { isDead } } = await _loadContractInstance(web3, contractId)
+    const {
+      data: { isDead },
+    } = await _loadContractInstance(web3, contractId)
     if (Boolean(isDead) === Boolean(deleteContract)) {
       return true
     }
