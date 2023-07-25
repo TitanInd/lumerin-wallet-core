@@ -16,6 +16,7 @@ const {
   cancelContract,
   purchaseContract,
   setContractDeleteStatus,
+  editContract,
 } = require('./api')
 const { ContractEventsListener } = require('./events-listener')
 
@@ -46,7 +47,7 @@ function createPlugin() {
     )
 
     const refreshContracts =
-      (web3, lumerin, cloneFactory) => async (contractId) => {
+      (web3, lumerin, cloneFactory) => async (contractId, walletAddress) => {
         eventBus.emit('contracts-scan-started', {})
 
         const addresses = contractId
@@ -64,7 +65,8 @@ function createPlugin() {
           web3Subscriptionable,
           lumerin,
           cloneFactory,
-          addresses
+          addresses,
+          walletAddress
         )
           .then((contracts) => {
             eventBus.emit('contracts-scan-finished', {
@@ -91,6 +93,7 @@ function createPlugin() {
         createContract: createContract(web3, cloneFactory, plugins),
         cancelContract: cancelContract(web3),
         purchaseContract: purchaseContract(web3, cloneFactory, lumerin),
+        editContract: editContract(web3, cloneFactory, lumerin),
         setContractDeleteStatus: setContractDeleteStatus(
           web3,
           cloneFactory,
