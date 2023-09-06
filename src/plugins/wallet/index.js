@@ -1,6 +1,5 @@
 'use strict';
 
-const debug = require('debug')('lmr-wallet:core:wallet');
 const Web3 = require('web3');
 
 const api = require('./api');
@@ -10,7 +9,7 @@ function createPlugin () {
   let walletAddress;
 
   function start ({ config, eventBus, plugins }) {
-    debug.enabled = config.debug;
+    // debug.enabled = config.debug;
 
     const web3 = new Web3(plugins.eth.web3Provider);
 

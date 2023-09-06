@@ -1,4 +1,5 @@
-const debug = require('debug')('lmr-wallet:core:contracts:api')
+// const debug = require('debug')('lmr-wallet:core:contracts:api')
+const logger = require('../../logger');
 const { encrypt } = require('ecies-geth')
 const { Implementation } = require('contracts-js')
 const { remove0xPrefix, add65BytesPrefix } = require('./helpers')
@@ -73,7 +74,7 @@ async function _loadContractInstance(
       },
     }
   } catch (err) {
-    debug(
+    logger.error(
       'Error when trying to load Contracts by address in the Implementation contract: ',
       err
     )
@@ -98,7 +99,7 @@ async function getContracts(
   walletAddress
 ) {
   return Promise.all(
-    addresses.map(async (address) =>
+    addresses.map((address) =>
       getContract(
         web3,
         web3Subscriptionable,
@@ -146,7 +147,7 @@ async function getContract(
  */
 function createContract(web3, cloneFactory, plugins) {
   if (!web3) {
-    debug('Not a valid Web3 instance')
+    logger.error('Not a valid Web3 instance')
     return
   }
 
@@ -208,7 +209,7 @@ function createContract(web3, cloneFactory, plugins) {
  */
 function cancelContract(web3) {
   if (!web3) {
-    debug('Not a valid Web3 instance')
+    logger.error('Not a valid Web3 instance')
     return
   }
 
@@ -245,7 +246,7 @@ function cancelContract(web3) {
  */
 function setContractDeleteStatus(web3, cloneFactory, onUpdate) {
   if (!web3) {
-    debug('Not a valid Web3 instance')
+    logger.error('Not a valid Web3 instance')
     return
   }
 
@@ -281,7 +282,7 @@ function setContractDeleteStatus(web3, cloneFactory, onUpdate) {
         gas,
       })
     onUpdate(contractId).catch((err) =>
-      debug(`Failed to refresh after setContractDeadStatus: ${err}`)
+      logger.error(`Failed to refresh after setContractDeadStatus: ${err}`)
     )
     return result
   }
@@ -339,7 +340,7 @@ function purchaseContract(web3, cloneFactory, lumerin) {
         gas: purchaseGas,
       })
 
-    debug('Finished puchase transaction', purchaseResult)
+    logger.debug('Finished puchase transaction', purchaseResult)
   }
 }
 
@@ -379,7 +380,7 @@ function editContract(web3, cloneFactory, lumerin) {
         gas: editGas,
       })
 
-    debug('Finished edit contract transaction', editResult)
+    logger.debug('Finished edit contract transaction', editResult)
   }
 }
 

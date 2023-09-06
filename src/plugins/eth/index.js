@@ -1,6 +1,6 @@
 'use strict';
 
-const debug = require('debug')('lmr-wallet:core:eth');
+const logger = require('../../logger');
 
 const { createWeb3, destroyWeb3, createWeb3Subscribable } = require('./web3');
 const checkChain = require('./check-chain');
@@ -10,14 +10,14 @@ function createPlugin () {
   let web3SubscribAble = null;
 
   function start ({ config, eventBus }) {
-    debug.enabled = config.debug;
+    // debug.enabled = config.debug;
     
     web3 = createWeb3(config, eventBus);
     web3SubscribAble = createWeb3Subscribable(config, eventBus);
 
     checkChain(web3, config.chainId)
       .then(function () {
-        debug('Chain ID is correct');
+        logger.debug('Chain ID is correct');
       })
       .catch(function (err) {
         eventBus.emit('wallet-error', {

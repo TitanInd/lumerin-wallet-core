@@ -1,4 +1,4 @@
-const debug = require('debug')('lmr-wallet:getRate')
+const logger = require('../../logger');
 const { getRateCoingecko } = require('./rate-coingecko')
 const { getRateCoinpaprika } = require('./rate-coinpaprika')
 const { getRateKucoin } = require('./rate-kucoin')
@@ -15,7 +15,7 @@ const getRate = async () => {
       const rates = await service()
       return rates
     } catch (err) {
-      debug(err)
+      logger.error('Failed to get rate:', err)
     }
   }
 }

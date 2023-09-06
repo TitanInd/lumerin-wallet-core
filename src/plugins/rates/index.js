@@ -1,6 +1,7 @@
 'use strict'
 
-const debug = require('debug')('lmr-wallet:core:rates')
+const logger = require('../../logger');
+
 const { getNetworkDifficulty } = require('./network-difficulty')
 const { getRate } = require('./rate')
 const createStream = require('./stream')
@@ -21,16 +22,16 @@ function createPlugin() {
    * @returns {{ events: string[] }} The instance details.
    */
   function start({ config, eventBus }) {
-    debug.enabled = debug.enabled || config.debug
+    // debug.enabled = debug.enabled || config.debug
 
-    debug('Plugin starting')
+    logger.debug('Plugin starting')
 
     const { ratesUpdateMs, symbol } = config
 
     dataStream = createStream(getRate, ratesUpdateMs)
 
     dataStream.on('data', function (price) {
-      debug('coin price updated: ', price);
+      logger.debug('coin price updated: ', price);
       if (price) {
         Object.entries(price).forEach(([token, price]) =>
           eventBus.emit('coin-price-updated', {
@@ -43,7 +44,7 @@ function createPlugin() {
     })
 
     dataStream.on('error', function (err) {
-      debug('coin price error', err)
+      logger.error('coin price error', err)
 
       eventBus.emit('wallet-error', {
         inner: err,
@@ -77,7 +78,7 @@ function createPlugin() {
    * Stop the plugin instance.
    */
   function stop() {
-    debug('Plugin stopping')
+    logger.debug('Plugin stopping')
 
     dataStream.destroy()
     networkDifficultyStream.destroy()

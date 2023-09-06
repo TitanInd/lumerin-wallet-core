@@ -1,7 +1,7 @@
 'use strict'
 
 const { create: createAxios } = require('axios')
-const debug = require('debug')('lmr-wallet:core:explorer:connection-manager')
+const logger = require('../../logger');
 const EventEmitter = require('events')
 const killer = require('cross-port-killer');
 
@@ -16,7 +16,7 @@ function createConnectionsManager(config, eventBus) {
   const { debug: enableDebug, proxyRouterUrl, ipLookupUrl } = config
   const pollingInterval = 5000
 
-  debug.enabled = enableDebug
+  // debug.enabled = enableDebug
 
   let interval
 
@@ -69,7 +69,7 @@ function createConnectionsManager(config, eventBus) {
 
         if (!isConnected) {
           isConnected = true
-          debug('emit proxy-router-status-changed')
+          logger.debug('emit proxy-router-status-changed')
           eventBus.emit('proxy-router-status-changed', {
             isConnected,
             syncStatus: 'synced',

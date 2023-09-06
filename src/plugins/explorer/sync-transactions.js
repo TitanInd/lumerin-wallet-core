@@ -1,16 +1,16 @@
 'use strict';
 
-const debug = require('debug')('lmr-wallet:core:explorer:syncer');
+const logger = require('../../logger');
 
 // eslint-disable-next-line max-params
 function createSyncer (config, eventBus, web3, queue, eventsRegistry, indexer) {
-  debug.enabled = config.debug;
+  // debug.enabled = config.debug;
 
   let bestBlock;
   const gotBestBlockPromise = new Promise(function (resolve) {
     eventBus.once('coin-block', function (header) {
       bestBlock = header.number;
-      debug('Got best block', bestBlock);
+      logger.debug('Got best block', bestBlock);
       resolve(bestBlock);
     });
   })
@@ -28,11 +28,11 @@ function createSyncer (config, eventBus, web3, queue, eventsRegistry, indexer) {
         queue.addTx(address, null)(mapApiResponseToTrxReceipt(data))
       })
       .on('resync', function () {
-        debug(`Shall resync ${symbol} transactions on next block`)
+        logger.debug(`Shall resync ${symbol} transactions on next block`)
         shallResync = true;
       })
       .on('error', function (err) {
-        debug(`Shall resync ${symbol} transactions on next block`)
+        logger.debug(`Shall resync ${symbol} transactions on next block`)
         shallResync = true;
         eventBus.emit('wallet-error', {
           inner: err,
@@ -52,7 +52,7 @@ function createSyncer (config, eventBus, web3, queue, eventsRegistry, indexer) {
         indexer.getETHTransactions(bestSyncBlock, number, address)
           .then(function (transactions) {
             const { length } = transactions;
-            debug(`${length} past ETH transactions retrieved`)
+            logger.debug(`${length} past ETH transactions retrieved`)
             const txs = transactions.map(mapApiResponseToTrxReceipt)
             queue.addTxs(address,null)(txs)
             bestSyncBlock = number;
@@ -131,7 +131,7 @@ function createSyncer (config, eventBus, web3, queue, eventsRegistry, indexer) {
     const { symbol } = config;
 
     const transactions = await indexer.getTransactions(fromBlock, toBlock || bestBlock, address, page, pageSize)
-    debug(`${transactions.length} past ${symbol} transactions retrieved`);
+    logger.debug(`${transactions.length} past ${symbol} transactions retrieved`);
 
     queue.addTxs(address, null)(transactions.map(mapApiResponseToTrxReceipt))
 
@@ -158,7 +158,7 @@ function createSyncer (config, eventBus, web3, queue, eventsRegistry, indexer) {
 
       // Ignore missing events
       if (!contract.events[eventName]) {
-        debug('Could not subscribe: event not found', eventName);
+        logger.error('Could not subscribe: event not found', eventName);
         return;
       }
 
@@ -167,7 +167,7 @@ function createSyncer (config, eventBus, web3, queue, eventsRegistry, indexer) {
         .on('data', queue.addEvent(address, metaParser))
         .on('changed', queue.addEvent(address, metaParser))
         .on('error', function (err) {
-          debug('Shall resync events on next block');
+          logger.error('Shall resync events on next block');
           shallResync = true;
           eventBus.emit('wallet-error', {
             inner: err,
@@ -214,7 +214,7 @@ function createSyncer (config, eventBus, web3, queue, eventsRegistry, indexer) {
   const syncTransactions = (fromBlock, address, onProgress, page, pageSize) =>
     gotBestBlockPromise
       .then(function () {
-        debug('Syncing', fromBlock, bestBlock);
+        logger.debug('Syncing', fromBlock, bestBlock);
         subscribeCoinTransactions(bestBlock, address);
         subscribeEvents(bestBlock, address);
         return getPastCoinTransactions(fromBlock, bestBlock, address, page, pageSize)
@@ -238,7 +238,7 @@ function createSyncer (config, eventBus, web3, queue, eventsRegistry, indexer) {
     subscriptions.forEach(function (subscription) {
       subscription.unsubscribe(function (err) {
         if (err) {
-          debug('Could not unsubscribe from event', err.message);
+          logger.error('Could not unsubscribe from event', err.message);
         }
       });
     });
