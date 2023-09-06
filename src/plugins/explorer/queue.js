@@ -1,14 +1,14 @@
 'use strict'
 
 const { debounce, groupBy, merge, noop, reduce } = require('lodash')
-const debug = require('debug')('lmr-wallet:core:explorer:queue')
+const logger = require('../../logger');
 const getTransactionStatus = require('./transaction-status')
 const promiseAllProps = require('promise-all-props')
 const abiDecoder = require('abi-decoder')
 const { Lumerin, CloneFactory } = require('contracts-js')
 
 function createQueue(config, eventBus, web3) {
-  debug.enabled = config.debug
+  // debug.enabled = config.debug
 
   const lumerin = Lumerin(web3, config.lmrTokenAddress)
   const cloneFactory = CloneFactory(web3, config.cloneFactoryAddress)
@@ -149,7 +149,7 @@ function createQueue(config, eventBus, web3) {
   //TODO: accept transaction and reciept to avoid api calls
   //TODO: if transaction/reciept are not available, use block number to get all transactions and receipts in one api call
   function emitPendingEvents(address) {
-    debug('About to emit pending events')
+    logger.debug('About to emit pending events')
 
     const eventsToEmit = pendingEvents.filter((e) => e.address === address)
     const eventsToKeep = pendingEvents.filter((e) => e.address !== address)
@@ -266,7 +266,7 @@ function createQueue(config, eventBus, web3) {
 
   const addEvent = (address, metaParser) =>
     function (event) {
-      debug('Queueing event', event.event)
+      logger.debug('Queueing event', event.event)
       return new Promise(function (resolve, reject) {
         pendingEvents.push({
           address,

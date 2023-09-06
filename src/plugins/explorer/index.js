@@ -1,6 +1,7 @@
 'use strict';
 
-const debug = require('debug')('lmr-wallet:core:explorer');
+const logger = require('../../logger');
+
 const Web3 = require('web3');
 const { Lumerin } = require('contracts-js');
 
@@ -17,7 +18,7 @@ function createPlugin () {
   let syncer;
 
   function start ({ config, eventBus, plugins }) {
-    debug.enabled = config.debug;
+    // debug.enabled = config.debug;
     const { lmrTokenAddress } = config;
 
     const web3 = new Web3(plugins.eth.web3Provider);
@@ -39,14 +40,14 @@ function createPlugin () {
       explorer
     );
 
-    debug('Initiating blocks stream');
+    logger.debug('Initiating blocks stream');
     blocksStream = createStream(web3Subscribable);
     blocksStream.on('data', function ({ hash, number, timestamp }) {
-      debug('New block', hash, number);
+      logger.debug('New block', hash, number);
       eventBus.emit('coin-block', { hash, number, timestamp });
     });
     blocksStream.on('error', function (err) {
-      debug('Could not get latest block');
+      logger.debug('Could not get latest block');
       eventBus.emit('wallet-error', {
         inner: err,
         message: 'Could not get latest block',

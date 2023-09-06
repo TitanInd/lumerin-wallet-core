@@ -1,5 +1,6 @@
 //@ts-check
-const debug = require('debug')('lmr-wallet:core:contracts:event-listener')
+// const debug = require('debug')('lmr-wallet:core:contracts:event-listener')
+const logger = require('../../logger');
 
 class ContractEventsListener {
   /**
@@ -28,10 +29,10 @@ class ContractEventsListener {
       this.contracts[id] = instance.events.allEvents()
       this.contracts[id]
         .on('connected', () => {
-          debug(`Start listen contract (${id}) events`)
+          logger.debug(`Start listen contract (${id}) events`)
         })
         .on('data', () => {
-          debug(`Contract (${id}) updated`)
+          logger.debug(`Contract (${id}) updated`)
           if (this.onUpdate){
             this.onUpdate(id)
           }
@@ -44,11 +45,11 @@ class ContractEventsListener {
       this.cloneFactoryListener = this.cloneFactory.events.contractCreated()
       this.cloneFactoryListener
         .on('connected', () => {
-          debug('Start listen clone factory events')
+          logger.debug('Start listen clone factory events')
         })
         .on('data', (event) => {
           const contractId = event.returnValues._address
-          debug('New contract created', contractId)
+          logger.debug('New contract created', contractId)
           this.onUpdate(contractId)
         })
     }
@@ -64,7 +65,6 @@ class ContractEventsListener {
     if (ContractEventsListener.instance) {
       return ContractEventsListener.instance
     }
-    debug.enabled = debugEnabled;
 
     const instance = new ContractEventsListener(cloneFactory)
     ContractEventsListener.instance = instance

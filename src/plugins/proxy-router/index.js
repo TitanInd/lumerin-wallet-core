@@ -1,6 +1,6 @@
 'use strict'
 
-const debug = require('debug')('lmr-wallet:core:proxy-router')
+const logger = require('../../logger');
 
 const createConnectionManager = require('./connections-manager')
 
@@ -8,9 +8,9 @@ function createPlugin() {
   let connectionManager
 
   function start({ config, eventBus }) {
-    debug.enabled = config.debug
+    // debug.enabled = config.debug
 
-    debug('Initiating proxy-router connections stream')
+    logger.debug('Initiating proxy-router connections stream')
     connectionManager = createConnectionManager(config, eventBus)
 
     const refreshConnectionsStream = (data) =>

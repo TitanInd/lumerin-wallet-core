@@ -1,7 +1,6 @@
 //@ts-check
 const axios = require('axios').default
-const debug = require('debug')('lmr-wallet:getDifficulty')
-
+const logger = require('../../logger');
 
 /**
  * Returns BTC network difficulty
@@ -13,7 +12,7 @@ const getNetworkDifficulty = async () => {
     const res = await axios.get(`${baseUrl}/q/getdifficulty`)
     return res?.data
   } catch (err) {
-    debug(err)
+    logger.error('Failed to get network difficulty:', err)
   }
 }
 

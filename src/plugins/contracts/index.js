@@ -1,7 +1,8 @@
 //@ts-check
 'use strict'
 
-const debug = require('debug')('lmr-wallet:core:contracts')
+// const debug = require('debug')('lmr-wallet:core:contracts')
+const logger = require('../../logger');
 const { Lumerin, CloneFactory } = require('contracts-js')
 
 /**
@@ -56,7 +57,7 @@ function createPlugin() {
               .getContractList()
               .call()
               .catch((error) => {
-                debug('cannot get list of contract addresses:', error)
+                logger.error('cannot get list of contract addresses:', error)
                 throw error
               })
 
@@ -74,7 +75,7 @@ function createPlugin() {
             })
           })
         .catch(function (error) {
-          debug('Could not sync contracts/events', error.stack)
+          logger.error('Could not sync contracts/events', error)
           throw error
         })
     }
@@ -113,7 +114,7 @@ function createPlugin() {
    * Stop the plugin instance.
    */
   function stop() {
-    debug('Plugin stopping')
+    logger.debug('Plugin stopping')
   }
 
   return {

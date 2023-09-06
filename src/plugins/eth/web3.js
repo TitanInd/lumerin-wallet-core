@@ -1,13 +1,14 @@
 'use strict'
 
-const debug = require('debug')('lmr-wallet:core:eth:web3')
+const logger = require('../../logger');
+
 const Web3 = require('web3')
 const https = require('https')
 
 let providers = [];
 
 function createWeb3(config) {
-  debug.enabled = config.debug
+  // debug.enabled = config.debug
 
   providers = config.httpApiUrls.map((url) => {
     return new Web3.providers.HttpProvider(url, {
@@ -31,7 +32,7 @@ function createWeb3(config) {
 }
 
 function createWeb3Subscribable(config, eventBus) {
-  debug.enabled = config.debug
+  // debug.enabled = config.debug
 
   const options = {
     timeout: 1000 * 15, // ms
@@ -49,15 +50,15 @@ function createWeb3Subscribable(config, eventBus) {
   )
 
   web3.currentProvider.on('connect', function () {
-    debug('Web3 provider connected')
+    logger.debug('Web3 provider connected')
     eventBus.emit('web3-connection-status-changed', { connected: true })
   })
   web3.currentProvider.on('error', function (event) {
-    debug('Web3 provider connection error: ', event.type || event.message)
+    logger.debug('Web3 provider connection error: ', event.type || event.message)
     eventBus.emit('web3-connection-status-changed', { connected: false })
   })
   web3.currentProvider.on('end', function (event) {
-    debug('Web3 provider connection ended: ', event.reason)
+    logger.debug('Web3 provider connection ended: ', event.reason)
     eventBus.emit('web3-connection-status-changed', { connected: false })
   })
 
