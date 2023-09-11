@@ -110,7 +110,7 @@ async function getContract(
  * @param {import('web3').default} web3
  * @param {import('contracts-js').CloneFactoryContext} cloneFactory
  */
-function createContract(web3, cloneFactory, plugins) {
+function createContract(web3, cloneFactory, marketplaceFee) {
   if (!web3) {
     debug('Not a valid Web3 instance')
     return
@@ -152,14 +152,14 @@ function createContract(web3, cloneFactory, plugins) {
         validatorAddress,
         pubKey.toString('hex')
       )
-      .send({ from: sellerAddress, gas: 500000 })
+      .send({ from: sellerAddress, gas: 500000, value: marketplaceFee })
   }
 }
 
 /**
  * @param {import('web3').default} web3
  */
-function cancelContract(web3) {
+function cancelContract(web3, marketplaceFee) {
   if (!web3) {
     debug('Not a valid Web3 instance')
     return
@@ -182,6 +182,7 @@ function cancelContract(web3) {
       .send({
         from: walletAddress,
         gas: gasLimit,
+        value: marketplaceFee
       })
   }
 }
@@ -235,10 +236,10 @@ function setContractDeleteStatus(web3, cloneFactory, onUpdate) {
  * @param {import('contracts-js').LumerinContext} lumerin
  * @returns
  */
-function purchaseContract(web3, cloneFactory, lumerin) {
+function purchaseContract(web3, cloneFactory, lumerin, marketplaceFee) {
   return async (params) => {
     const { walletId, contractId, url, privateKey, price } = params
-    const sendOptions = { from: walletId, gas: 1_000_000 }
+    const sendOptions = { from: walletId, gas: 1_000_000, value: marketplaceFee }
 
     //getting pubkey from contract to be purchased
     const implementationContract = Implementation(web3, contractId)
@@ -260,7 +261,7 @@ function purchaseContract(web3, cloneFactory, lumerin) {
     }
 
     await lumerin.methods
-      .increaseAllowance(cloneFactory.options.address, price + price * 0.01)
+      .increaseAllowance(cloneFactory.options.address, price)
       .send(sendOptions)
 
     const purchaseResult = await cloneFactory.methods
