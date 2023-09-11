@@ -45,8 +45,6 @@ function createPlugin() {
       cloneFactoryAddress
     )
 
-    const marketplaceFee = cloneFactory.methods.marketplaceFee().call();
-
     const refreshContracts =
       (web3, lumerin, cloneFactory) => async (contractId) => {
         eventBus.emit('contracts-scan-started', {})
@@ -90,9 +88,9 @@ function createPlugin() {
     return {
       api: {
         refreshContracts: refreshContracts(web3, lumerin, cloneFactory),
-        createContract: createContract(web3, cloneFactory, marketplaceFee),
-        cancelContract: cancelContract(web3, marketplaceFee),
-        purchaseContract: purchaseContract(web3, cloneFactory, lumerin, marketplaceFee),
+        createContract: createContract(web3, cloneFactory),
+        cancelContract: cancelContract(web3, cloneFactory),
+        purchaseContract: purchaseContract(web3, cloneFactory, lumerin),
         setContractDeleteStatus: setContractDeleteStatus(
           web3,
           cloneFactory,

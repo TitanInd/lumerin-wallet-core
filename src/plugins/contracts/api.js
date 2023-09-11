@@ -110,7 +110,7 @@ async function getContract(
  * @param {import('web3').default} web3
  * @param {import('contracts-js').CloneFactoryContext} cloneFactory
  */
-function createContract(web3, cloneFactory, marketplaceFee) {
+function createContract(web3, cloneFactory) {
   if (!web3) {
     debug('Not a valid Web3 instance')
     return
@@ -143,6 +143,8 @@ function createContract(web3, cloneFactory, marketplaceFee) {
     const account = web3.eth.accounts.privateKeyToAccount(privateKey)
     web3.eth.accounts.wallet.create(0).add(account)
 
+    const marketplaceFee = await cloneFactory.methods.marketplaceFee().call();
+
     return cloneFactory.methods
       .setCreateNewRentalContract(
         price,
@@ -158,8 +160,9 @@ function createContract(web3, cloneFactory, marketplaceFee) {
 
 /**
  * @param {import('web3').default} web3
+ *  @param {import('contracts-js').CloneFactoryContext} cloneFactory
  */
-function cancelContract(web3, marketplaceFee) {
+function cancelContract(web3, cloneFactory) {
   if (!web3) {
     debug('Not a valid Web3 instance')
     return
@@ -176,6 +179,7 @@ function cancelContract(web3, marketplaceFee) {
 
     const account = web3.eth.accounts.privateKeyToAccount(privateKey)
     web3.eth.accounts.wallet.create(0).add(account)
+    const marketplaceFee = await cloneFactory.methods.marketplaceFee().call();
 
     return await Implementation(web3, contractId)
       .methods.setContractCloseOut(closeOutType)
@@ -236,10 +240,10 @@ function setContractDeleteStatus(web3, cloneFactory, onUpdate) {
  * @param {import('contracts-js').LumerinContext} lumerin
  * @returns
  */
-function purchaseContract(web3, cloneFactory, lumerin, marketplaceFee) {
+function purchaseContract(web3, cloneFactory, lumerin) {
   return async (params) => {
     const { walletId, contractId, url, privateKey, price } = params
-    const sendOptions = { from: walletId, gas: 1_000_000, value: marketplaceFee }
+    const sendOptions = { from: walletId, gas: 1_000_000 }
 
     //getting pubkey from contract to be purchased
     const implementationContract = Implementation(web3, contractId)
@@ -264,9 +268,11 @@ function purchaseContract(web3, cloneFactory, lumerin, marketplaceFee) {
       .increaseAllowance(cloneFactory.options.address, price)
       .send(sendOptions)
 
+    const marketplaceFee = await cloneFactory.methods.marketplaceFee().call();
+
     const purchaseResult = await cloneFactory.methods
       .setPurchaseRentalContract(contractId, ciphertext.toString('hex'))
-      .send(sendOptions)
+      .send({...sendOptions, value: marketplaceFee })
 
     debug('Finished puchase transaction', purchaseResult)
   }
