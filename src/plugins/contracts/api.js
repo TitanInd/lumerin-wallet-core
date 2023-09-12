@@ -146,8 +146,6 @@ function createContract(web3, cloneFactory) {
 
     const marketplaceFee = await cloneFactory.methods.marketplaceFee().call();
 
-    console.log("FEE", marketplaceFee);
-
     return cloneFactory.methods
       .setCreateNewRentalContract(
         price,
