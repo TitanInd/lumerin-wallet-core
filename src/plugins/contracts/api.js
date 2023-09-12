@@ -107,6 +107,13 @@ async function getContract(
 }
 
 /**
+ * @param {import('contracts-js').CloneFactoryContext} cloneFactory
+ */
+const getMarketplaceFee = (cloneFactory) => async () => {
+  return await cloneFactory.methods.marketplaceFee().call();
+}
+
+/**
  * @param {import('web3').default} web3
  * @param {import('contracts-js').CloneFactoryContext} cloneFactory
  */
@@ -286,4 +293,5 @@ module.exports = {
   cancelContract,
   purchaseContract,
   setContractDeleteStatus,
+  getMarketplaceFee
 }
