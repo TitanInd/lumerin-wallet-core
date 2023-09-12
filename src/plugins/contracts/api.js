@@ -121,6 +121,7 @@ function createContract(web3, cloneFactory) {
     let {
       price,
       limit = 0,
+      gasLimit = 1000000,
       speed,
       duration,
       sellerAddress,
@@ -145,6 +146,8 @@ function createContract(web3, cloneFactory) {
 
     const marketplaceFee = await cloneFactory.methods.marketplaceFee().call();
 
+    console.log("FEE", marketplaceFee);
+
     return cloneFactory.methods
       .setCreateNewRentalContract(
         price,
@@ -154,7 +157,7 @@ function createContract(web3, cloneFactory) {
         validatorAddress,
         pubKey.toString('hex')
       )
-      .send({ from: sellerAddress, gas: 500000, value: marketplaceFee })
+      .send({ from: sellerAddress, gas: gasLimit, value: marketplaceFee })
   }
 }
 
