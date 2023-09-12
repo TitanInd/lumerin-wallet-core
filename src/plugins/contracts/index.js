@@ -18,6 +18,7 @@ const {
   purchaseContract,
   setContractDeleteStatus,
   editContract,
+  getMarketplaceFee
 } = require('./api')
 const { ContractEventsListener } = require('./events-listener')
 
@@ -91,10 +92,11 @@ function createPlugin() {
     return {
       api: {
         refreshContracts: refreshContracts(web3, lumerin, cloneFactory),
-        createContract: createContract(web3, cloneFactory, plugins),
-        cancelContract: cancelContract(web3),
+        createContract: createContract(web3, cloneFactory),
+        cancelContract: cancelContract(web3, cloneFactory),
         purchaseContract: purchaseContract(web3, cloneFactory, lumerin),
         editContract: editContract(web3, cloneFactory, lumerin),
+        getMarketplaceFee: getMarketplaceFee(cloneFactory),
         setContractDeleteStatus: setContractDeleteStatus(
           web3,
           cloneFactory,
