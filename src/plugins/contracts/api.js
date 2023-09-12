@@ -1,5 +1,5 @@
 // const debug = require('debug')('lmr-wallet:core:contracts:api')
-const logger = require('../../logger');
+const logger = require('../../logger')
 const { encrypt } = require('ecies-geth')
 const { Implementation } = require('contracts-js')
 const { remove0xPrefix, add65BytesPrefix } = require('./helpers')
@@ -22,6 +22,18 @@ async function _loadContractInstance(
       .getPublicVariables()
       .call()
     const stats = await implementationContract.methods.getStats().call()
+
+    const history = await implementationContract.methods
+      .getHistory('0', '100')
+      .call()
+    const buyerHistory = history
+      .filter((h) => {
+        return h[6] === walletAddress
+      })
+      .map((h) => ({
+        ...h,
+        id: implementationAddress,
+      }))
 
     const { _successCount: successCount, _failCount: failCount } = stats
 
@@ -71,6 +83,7 @@ async function _loadContractInstance(
         },
         hasFutureTerms,
         futureTerms,
+        history: buyerHistory,
       },
     }
   } catch (err) {
@@ -136,7 +149,8 @@ async function getContract(
 
   contractEventsListener.addContract(
     contractInfo.data.id,
-    Implementation(web3Subscriptionable, contractId)
+    Implementation(web3Subscriptionable, contractId),
+    walletAddress
   )
   return contractInfo.data
 }
@@ -281,7 +295,7 @@ function setContractDeleteStatus(web3, cloneFactory, onUpdate) {
         from: walletAddress,
         gas,
       })
-    onUpdate(contractId).catch((err) =>
+    onUpdate(contractId, walletAddress).catch((err) =>
       logger.error(`Failed to refresh after setContractDeadStatus: ${err}`)
     )
     return result
@@ -316,7 +330,7 @@ function purchaseContract(web3, cloneFactory, lumerin) {
 
     const {
       data: { isDead, price: p },
-    } = await _loadContractInstance(web3, contractId)    
+    } = await _loadContractInstance(web3, contractId)
     if (isDead) {
       throw new Error('Contract is deleted already')
     }

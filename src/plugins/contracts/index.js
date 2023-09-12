@@ -50,7 +50,7 @@ function createPlugin() {
     const refreshContracts =
       (web3, lumerin, cloneFactory) => async (contractId, walletAddress) => {
         eventBus.emit('contracts-scan-started', {})
-
+        ContractEventsListener.getInstance().walletAddress = walletAddress;
         const addresses = contractId
           ? [contractId]
           : await cloneFactory.methods

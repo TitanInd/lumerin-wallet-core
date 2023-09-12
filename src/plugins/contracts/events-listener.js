@@ -10,10 +10,11 @@ class ContractEventsListener {
     this.cloneFactory = cloneFactory
     this.cloneFactoryListener = null
     this.contracts = {}
+    this.walletAddress = null;
   }
 
   /**
-   * @param {(contractId?: string) => void} onUpdate
+   * @param {(contractId?: string, walletAddress?: string) => void} onUpdate
    */
   setOnUpdate(onUpdate) {
     this.onUpdate = onUpdate
@@ -23,8 +24,9 @@ class ContractEventsListener {
    *
    * @param {string} id
    * @param {import('contracts-js').ImplementationContext} instance
+   * @param {string} walletAddress
    */
-  addContract(id, instance) {
+  addContract(id, instance, walletAddress) {
     if (!this.contracts[id]) {
       this.contracts[id] = instance.events.allEvents()
       this.contracts[id]
@@ -34,7 +36,7 @@ class ContractEventsListener {
         .on('data', () => {
           logger.debug(`Contract (${id}) updated`)
           if (this.onUpdate){
-            this.onUpdate(id)
+            this.onUpdate(id, this.walletAddress || walletAddress)
           }
         })
     }
@@ -50,7 +52,7 @@ class ContractEventsListener {
         .on('data', (event) => {
           const contractId = event.returnValues._address
           logger.debug('New contract created', contractId)
-          this.onUpdate(contractId)
+          this.onUpdate(contractId, this.walletAddress)
         })
     }
   }
