@@ -156,10 +156,17 @@ async function getContract(
 }
 
 /**
+ * @param {import('contracts-js').CloneFactoryContext} cloneFactory
+ */
+const getMarketplaceFee = (cloneFactory) => async () => {
+  return await cloneFactory.methods.marketplaceFee().call();
+}
+
+/**
  * @param {import('web3').default} web3
  * @param {import('contracts-js').CloneFactoryContext} cloneFactory
  */
-function createContract(web3, cloneFactory, plugins) {
+function createContract(web3, cloneFactory) {
   if (!web3) {
     logger.error('Not a valid Web3 instance')
     return
@@ -205,6 +212,8 @@ function createContract(web3, cloneFactory, plugins) {
         from: sellerAddress,
       })
 
+    const marketplaceFee = await cloneFactory.methods.marketplaceFee().call();
+
     return cloneFactory.methods
       .setCreateNewRentalContract(
         price,
@@ -214,14 +223,14 @@ function createContract(web3, cloneFactory, plugins) {
         validatorAddress,
         pubKey.toString('hex')
       )
-      .send({ from: sellerAddress, gas })
+      .send({ from: sellerAddress, gas, value: marketplaceFee })
   }
 }
 
 /**
  * @param {import('web3').default} web3
  */
-function cancelContract(web3) {
+function cancelContract(web3, cloneFactory) {
   if (!web3) {
     logger.error('Not a valid Web3 instance')
     return
@@ -245,11 +254,14 @@ function cancelContract(web3) {
         from: walletAddress,
       })
 
+    const marketplaceFee = await cloneFactory.methods.marketplaceFee().call();
+
     return await Implementation(web3, contractId)
       .methods.setContractCloseOut(closeOutType)
       .send({
         from: walletAddress,
         gas,
+        value: marketplaceFee
       })
   }
 }
@@ -335,10 +347,8 @@ function purchaseContract(web3, cloneFactory, lumerin) {
       throw new Error('Contract is deleted already')
     }
 
-    const totalPrice = (+price + price * 0.01).toString()
-
     await lumerin.methods
-      .increaseAllowance(cloneFactory.options.address, totalPrice)
+      .increaseAllowance(cloneFactory.options.address, price)
       .send(sendOptions)
 
     const purchaseGas = await cloneFactory.methods
@@ -346,12 +356,14 @@ function purchaseContract(web3, cloneFactory, lumerin) {
       .estimateGas({
         from: sendOptions.from,
       })
+    const marketplaceFee = await cloneFactory.methods.marketplaceFee().call();
 
     const purchaseResult = await cloneFactory.methods
       .setPurchaseRentalContract(contractId, ciphertext.toString('hex'))
       .send({
         ...sendOptions,
         gas: purchaseGas,
+        value: marketplaceFee
       })
 
     logger.debug('Finished puchase transaction', purchaseResult)
@@ -406,4 +418,5 @@ module.exports = {
   purchaseContract,
   setContractDeleteStatus,
   editContract,
+  getMarketplaceFee
 }
