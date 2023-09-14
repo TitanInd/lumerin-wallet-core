@@ -198,6 +198,7 @@ function createContract(web3, cloneFactory) {
 
     const account = web3.eth.accounts.privateKeyToAccount(privateKey)
     web3.eth.accounts.wallet.create(0).add(account)
+    const marketplaceFee = await cloneFactory.methods.marketplaceFee().call();
 
     const gas = await cloneFactory.methods
       .setCreateNewRentalContract(
@@ -210,9 +211,8 @@ function createContract(web3, cloneFactory) {
       )
       .estimateGas({
         from: sellerAddress,
+        value: marketplaceFee
       })
-
-    const marketplaceFee = await cloneFactory.methods.marketplaceFee().call();
 
     return cloneFactory.methods
       .setCreateNewRentalContract(
@@ -248,13 +248,14 @@ function cancelContract(web3, cloneFactory) {
     const account = web3.eth.accounts.privateKeyToAccount(privateKey)
     web3.eth.accounts.wallet.create(0).add(account)
 
+    const marketplaceFee = await cloneFactory.methods.marketplaceFee().call();
+
     const gas = await Implementation(web3, contractId)
       .methods.setContractCloseOut(closeOutType)
       .estimateGas({
         from: walletAddress,
+        value: marketplaceFee
       })
-
-    const marketplaceFee = await cloneFactory.methods.marketplaceFee().call();
 
     return await Implementation(web3, contractId)
       .methods.setContractCloseOut(closeOutType)
@@ -350,13 +351,15 @@ function purchaseContract(web3, cloneFactory, lumerin) {
     await lumerin.methods
       .increaseAllowance(cloneFactory.options.address, price)
       .send(sendOptions)
+    
+    const marketplaceFee = await cloneFactory.methods.marketplaceFee().call();
 
     const purchaseGas = await cloneFactory.methods
       .setPurchaseRentalContract(contractId, ciphertext.toString('hex'))
       .estimateGas({
         from: sendOptions.from,
+        value: marketplaceFee
       })
-    const marketplaceFee = await cloneFactory.methods.marketplaceFee().call();
 
     const purchaseResult = await cloneFactory.methods
       .setPurchaseRentalContract(contractId, ciphertext.toString('hex'))
