@@ -9,6 +9,7 @@ const createArbiscanApi = (chainId) => {
       break
     case '42161':
       baseURL = 'https://api.arbiscan.io/api'
+      break
     default:
       throw new Error(`Unsupported chain ${chainId}`)
   }
