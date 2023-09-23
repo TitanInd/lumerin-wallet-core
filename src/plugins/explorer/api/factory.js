@@ -15,8 +15,9 @@ const createExplorerApis = (chainId) => {
       const etherscanApi = createEtherscanApi(chainId)
       const blockscoutApi = createBlockscoutApi(chainId)
       apis.push(etherscanApi, blockscoutApi)
-      break;
+      break
     case '421613':
+    case '42161':
       const arbiscanApi = createArbiscanApi(chainId)
       apis.push(arbiscanApi)
       break
