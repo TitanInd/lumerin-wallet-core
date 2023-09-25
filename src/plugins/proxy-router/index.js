@@ -34,7 +34,8 @@ function createPlugin() {
         refreshConnectionsStream: refreshConnectionsStream,
         getLocalIp: connectionManager.getLocalIp,
         healthCheck: connectionManager.healthCheck,
-        kill: connectionManager.kill
+        kill: connectionManager.kill,
+        isProxyPortPublic: connectionManager.isProxyPortPublic,
       },
       events: [
         'proxy-router-connections-changed',

@@ -1,9 +1,10 @@
 'use strict'
 
 const { create: createAxios } = require('axios')
-const logger = require('../../logger');
+const axios = require('axios')
+const logger = require('../../logger')
 const EventEmitter = require('events')
-const killer = require('cross-port-killer');
+const killer = require('cross-port-killer')
 
 /**
  * Create an object to interact with the Lumerin indexer.
@@ -13,7 +14,12 @@ const killer = require('cross-port-killer');
  * @returns {object} The exposed indexer API.
  */
 function createConnectionsManager(config, eventBus) {
-  const { debug: enableDebug, proxyRouterUrl, ipLookupUrl } = config
+  const {
+    debug: enableDebug,
+    proxyRouterUrl,
+    ipLookupUrl,
+    portCheckerUrl,
+  } = config
   const pollingInterval = 5000
 
   // debug.enabled = enableDebug
@@ -26,19 +32,19 @@ function createConnectionsManager(config, eventBus) {
     }
 
     if (proxyUrl) {
-      const sellerMiners = await getMiners(proxyUrl);
-      return [...sellerMiners];
+      const sellerMiners = await getMiners(proxyUrl)
+      return [...sellerMiners]
     }
 
     return await getMiners(proxyRouterUrl)
   }
 
   const healthCheck = async (url) => {
-    return createAxios({ baseURL: url })('/healthcheck');
+    return createAxios({ baseURL: url })('/healthcheck')
   }
 
   const kill = (port) => {
-    return killer.kill(port);
+    return killer.kill(port)
   }
 
   /**
@@ -97,17 +103,33 @@ function createConnectionsManager(config, eventBus) {
   }
 
   /**
-   * 
+   *
    * @returns {string|null}
    */
   const getLocalIp = async () => {
-    const baseURL = ipLookupUrl || 'https://ifconfig.io/ip';
-    const { data } = await createAxios({ baseURL })();
-    const stringData = typeof data === 'string' ? data : JSON.stringify(data);
+    const baseURL = ipLookupUrl || 'https://ifconfig.io/ip'
+    const { data } = await createAxios({ baseURL })()
+    const stringData = typeof data === 'string' ? data : JSON.stringify(data)
 
-    const ipRegex = /\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b/;
-    const [ip] = stringData.match(ipRegex);
-    return ip;
+    const ipRegex =
+      /\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b/
+    const [ip] = stringData.match(ipRegex)
+    return ip
+  }
+
+  /**
+   *
+   * @returns {Promise<boolean>}
+   */
+  const isProxyPortPublic = async (payload) => {
+    const { ip, port } = payload;
+    const baseURL = portCheckerUrl || 'https://portchecker.io/api/v1/query'
+    const { data } = await axios.post(baseURL, {
+      host: ip,
+      ports: [port],
+    })
+
+    return !!data.check?.find((c) => c.port === port && c.status === true)
   }
 
   return {
@@ -116,6 +138,7 @@ function createConnectionsManager(config, eventBus) {
     getLocalIp,
     healthCheck,
     kill,
+    isProxyPortPublic,
   }
 }
 
