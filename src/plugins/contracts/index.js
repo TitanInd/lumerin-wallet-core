@@ -38,7 +38,7 @@ function createPlugin() {
     const { lmrTokenAddress, cloneFactoryAddress } = config
     const { eth } = plugins
 
-    const web3 = new Web3(eth.web3Provider)
+    const web3 = eth.web3
     const web3Subscriptionable = new Web3(plugins.eth.web3SubscriptionProvider)
 
     const lumerin = Lumerin(web3, lmrTokenAddress)
