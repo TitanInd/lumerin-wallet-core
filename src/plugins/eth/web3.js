@@ -87,8 +87,8 @@ const overrideFunctions = function (object, providers) {
       !key.startsWith('set')
     ) {
       object[key] = function () {
-        const isAsync =
-          originalFunctions[key][Symbol.toStringTag] === 'AsyncFunction'
+        const originalFunction = originalFunctions[key]
+        const isAsync = originalFunction[Symbol.toStringTag] === 'AsyncFunction'
         const args = arguments
         let providerIndex = lastUsedProviderIndex
         let result
@@ -97,7 +97,7 @@ const overrideFunctions = function (object, providers) {
           const provider = providers[providerIndex]
           originalSetProvider(provider)
           if (isAsync) {
-            result = originalFunctions[key]
+            result = originalFunction
               .apply(this, args)
               .then((res) => {
                 if (res !== undefined) {
@@ -111,8 +111,19 @@ const overrideFunctions = function (object, providers) {
               })
           } else {
             try {
-              result = originalFunctions[key].apply(this, args)
-              if (result !== undefined) {
+              if (new.target) {
+                function F(args) {
+                  return originalFunction.apply(this, args)
+                }
+
+                F.prototype = originalFunction.prototype
+
+                return new F(args)
+              } else {
+                result = originalFunctions[key].apply(this, args)
+              }
+
+              if (typeof result !== "undefined") {
                 break
               }
             } catch (error) {
@@ -121,7 +132,7 @@ const overrideFunctions = function (object, providers) {
           }
         } while (providerIndex !== lastUsedProviderIndex)
         lastUsedProviderIndex = providerIndex
-        if (result === undefined) {
+        if (typeof result === "undefined") {
           throw new Error('All providers failed to execute the function')
         }
         return result
