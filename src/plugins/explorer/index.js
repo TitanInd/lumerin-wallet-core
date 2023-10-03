@@ -16,6 +16,7 @@ const createExplorer = require('./explorer');
 function createPlugin () {
   let blocksStream;
   let syncer;
+  let interval;
 
   function start ({ config, eventBus, plugins }) {
     // debug.enabled = config.debug;
@@ -39,9 +40,12 @@ function createPlugin () {
       eventsRegistry,
       explorer
     );
-
+      
     logger.debug('Initiating blocks stream');
-    blocksStream = createStream(web3Subscribable);
+    const streamData = createStream(web3, config.blocksUpdateMs);
+    blocksStream = streamData.stream;
+    interval = streamData.interval;
+
     blocksStream.on('data', function ({ hash, number, timestamp }) {
       logger.debug('New block', hash, number);
       eventBus.emit('coin-block', { hash, number, timestamp });
@@ -78,7 +82,8 @@ function createPlugin () {
 
   function stop () {
     // blocksStream.destroy();
-    blocksStream.unsubscribe();
+    blocksStream.removeAllListeners();
+    clearInterval(interval);
     syncer.stop();
   }
 
