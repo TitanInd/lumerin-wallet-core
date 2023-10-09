@@ -124,4 +124,16 @@ describe('Web3 multiple nodes integration tests', () => {
       expect(web3.currentIndex).eq(0)
     }
   })
+
+  it('should not loop forever', async () => {
+    const web3 = new Web3Http([invalidNode, invalidNode, invalidNode])
+
+    try {
+      await web3.eth.getBlockNumber()
+      expect(1).eq(0)
+    } catch (err) {
+      expect(web3.retryCount).eq(0)
+      expect(web3.currentIndex).eq(0)
+    }
+  })
 })

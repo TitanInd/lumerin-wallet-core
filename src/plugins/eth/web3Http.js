@@ -15,6 +15,7 @@ class Web3Http extends Web3 {
         })
     )
     this.currentIndex = 0
+    this.retryCount = 0
 
     // Initialize Web3 with the first provider from the list
     this.setCustomProvider(this.providers[this.currentIndex])
@@ -34,14 +35,22 @@ class Web3Http extends Web3 {
     this.currentProvider.send = (payload, callback) => {
       originalSend(payload, (error, response) => {
         if (error) {
+          // Avoid infinite loop
+          if (this.retryCount >= this.providers.length) {
+            callback(error, null)
+            this.retryCount = 0
+            return;
+          }
           // If the request fails, switch to the next provider and try again
           this.currentIndex = (this.currentIndex + 1) % this.providers.length
           this.setCustomProvider(this.providers[this.currentIndex])
           logger.error(
             `Switched to provider: ${this.providers[this.currentIndex].host}`
           )
+          this.retryCount += 1
           this.currentProvider.send(payload, callback) // Retry the request
         } else {
+          this.retryCount = 0
           callback(null, response)
         }
       })
@@ -56,4 +65,4 @@ class Web3Http extends Web3 {
   }
 }
 
-module.exports = { Web3Http };
+module.exports = { Web3Http }
