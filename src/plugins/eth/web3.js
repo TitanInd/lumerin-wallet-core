@@ -1,7 +1,8 @@
 'use strict'
 
 const logger = require('../../logger');
-
+/** @type {typeof import("web3").default} */
+//@ts-ignore
 const Web3 = require('web3')
 const https = require('https')
 

@@ -20,6 +20,7 @@ function createPlugin () {
         logger.debug('Chain ID is correct');
       })
       .catch(function (err) {
+        logger.error(err?.message, err?.stack)
         eventBus.emit('wallet-error', {
           inner: err,
           message: 'Could not check chain ID',
