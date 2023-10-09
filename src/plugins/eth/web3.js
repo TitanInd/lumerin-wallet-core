@@ -48,7 +48,7 @@ function createWeb3Subscribable(config, eventBus) {
 }
 
 function destroyWeb3(web3) {
-  web3.currentProvider.disconnect()
+  web3.currentProvider?.disconnect()
 }
 
 module.exports = {
