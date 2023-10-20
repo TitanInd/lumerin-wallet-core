@@ -66,6 +66,30 @@ async function getContract(
 }
 
 /**
+ * @param {import('web3').default} web3
+ * @param {string} contractId
+ * @param {string} walletAddress
+ */
+async function getContractHistory(web3, contractId, walletAddress) {
+  const implementation = Implementation(web3, contractId)
+
+  const history = await implementation.methods
+    .getHistory('0', '100')
+    .call()
+
+  const buyerHistory = history
+    .filter((h) => {
+      return h[6] === walletAddress
+    })
+    .map((h) => ({
+      ...h,
+      id: contractId,
+    }))
+
+  return buyerHistory
+}
+
+/**
  * @param {import('contracts-js').CloneFactoryContext} cloneFactory
  */
 const getMarketplaceFee = (cloneFactory) => async () => {
@@ -322,6 +346,7 @@ function editContract(web3, cloneFactory) {
 
 module.exports = {
   getContract,
+  getContractHistory,
   createContract,
   cancelContract,
   purchaseContract,

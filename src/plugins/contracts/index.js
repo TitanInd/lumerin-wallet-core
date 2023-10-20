@@ -1,5 +1,3 @@
-//@ts-check
-const logger = require('../../logger');
 const { Lumerin, CloneFactory } = require('contracts-js')
 const {
   createContract,
@@ -7,7 +5,8 @@ const {
   purchaseContract,
   setContractDeleteStatus,
   editContract,
-  getMarketplaceFee
+  getMarketplaceFee,
+  getContractHistory
 } = require('./api')
 const { EventsController } = require('./events-controller');
 const { WatcherPolling } = require('./watcher-polling');
@@ -17,6 +16,9 @@ const { WatcherPolling } = require('./watcher-polling');
  * @returns {({ start: Function, stop: () => void})} The plugin instance.
  */
 function createPlugin() {
+  /** @type {EventsController | null} */
+  let eventsController = null
+
   /**
    * Start the plugin instance.
    * @param {object} options Start options.
@@ -32,7 +34,7 @@ function createPlugin() {
     const cloneFactory = CloneFactory(web3, cloneFactoryAddress)
 
     const watcher = new WatcherPolling(web3, config.walletAddress, cloneFactoryAddress, 3000)
-    const eventsController = new EventsController(
+    eventsController = new EventsController(
       web3, eventBus, watcher, config.walletAddress, cloneFactory
     )
 
@@ -41,6 +43,7 @@ function createPlugin() {
         startWatching: eventsController.start.bind(eventsController),
         stopWatching: eventsController.stop.bind(eventsController),
         refreshContracts: eventsController.refreshContracts.bind(eventsController),
+        getContractHistory: (contractAddr) => getContractHistory(web3, contractAddr, config.walletAddress),
         createContract: createContract(web3, cloneFactory),
         cancelContract: cancelContract(web3, cloneFactory),
         purchaseContract: purchaseContract(web3, cloneFactory, lumerin),
@@ -66,7 +69,9 @@ function createPlugin() {
    * Stop the plugin instance.
    */
   function stop() {
-    logger.debug('Plugin stopping')
+    if (eventsController) {
+      eventsController.stop()
+    }
   }
 
   return {
