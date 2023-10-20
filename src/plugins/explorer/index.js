@@ -3,54 +3,42 @@
 const logger = require('../../logger');
 
 const Web3 = require('web3');
-const { Lumerin } = require('contracts-js');
+const { Lumerin, CloneFactory } = require('contracts-js');
 
-const createEventsRegistry = require('./events');
-const { logTransaction } = require('./log-transaction');
-const createQueue = require('./queue');
-const createStream = require('./blocks-stream');
-const createTransactionSyncer = require('./sync-transactions');
-const tryParseEventLog = require('./parse-log');
-const createExplorer = require('./explorer');
+const createBlockStream = require('./blocks-stream');
+const { createExplorer } = require('./explorer');
 
-function createPlugin () {
+function createPlugin() {
   let blocksStream;
-  let syncer;
-  let interval;
+  /** @type {import('./explorer').Explorer} */
+  let explorer = null;
 
-  function start ({ config, eventBus, plugins }) {
+  function start({ config, eventBus, plugins }) {
     // debug.enabled = config.debug;
-    const { lmrTokenAddress } = config;
 
-    const web3 = new Web3(plugins.eth.web3Provider);
+    /** @type { import('web3').default } */
+    const web3 = plugins.eth.web3
 
-    const web3Subscribable = new Web3(plugins.eth.web3SubscriptionProvider);
+    const lumerin = Lumerin(web3, config.lmrTokenAddress);
+    const cf = CloneFactory(web3, config.cloneFactoryAddress);
 
-    const eventsRegistry = createEventsRegistry();
-    const queue = createQueue(config, eventBus, web3);
-    const lumerin = Lumerin(web3Subscribable, lmrTokenAddress);
+    explorer = createExplorer(config.chainId, web3, lumerin, config.walletAddress, cf);
+    explorer.startWatching(
+      (tx) => eventBus.emit('token-transactions-changed', [tx]),
+      (err) => eventBus.emit('wallet-error', {
+        inner: err,
+        message: 'Could not get latest transactions',
+        meta: { plugin: 'explorer' },
+      })
+    )
 
-    const explorer = createExplorer(config.chainId, web3, lumerin, eventBus);
-
-    syncer = createTransactionSyncer(
-      config,
-      eventBus,
-      web3,
-      queue,
-      eventsRegistry,
-      explorer
-    );
-      
     logger.debug('Initiating blocks stream');
-    const streamData = createStream(web3, config.blocksUpdateMs);
-    blocksStream = streamData.stream;
-    interval = streamData.interval;
+    blocksStream = createBlockStream(web3, config.blocksUpdateMs);
 
-    blocksStream.on('data', function ({ hash, number, timestamp }) {
+    blocksStream.stream.on('data', function ({ hash, number, timestamp }) {
       logger.debug('New block', hash, number);
       eventBus.emit('coin-block', { hash, number, timestamp });
-    });
-    blocksStream.on('error', function (err) {
+    }).on('error', function (err) {
       logger.debug('Could not get latest block');
       eventBus.emit('wallet-error', {
         inner: err,
@@ -61,30 +49,26 @@ function createPlugin () {
 
     return {
       api: {
-        logTransaction: logTransaction(queue),
-        refreshAllTransactions: syncer.refreshAllTransactions,
-        registerEvent: eventsRegistry.register,
-        syncTransactions: syncer.syncTransactions,
-        tryParseEventLog: tryParseEventLog(web3, eventsRegistry),
-        getPastCoinTransactions: syncer.getPastCoinTransactions,
+        logTransaction: explorer.logTransaction,
+        refreshAllTransactions: () => explorer.getTransactions('0', 'latest', 0, 100), // TODO: keep only one method
+        getPastCoinTransactions: () => explorer.getTransactions('0', 'latest', 0, 100),
+        syncTransactions: () => explorer.getTransactions('0', 'latest', 0, 100),
       },
       events: [
         'token-transactions-changed',
-        'wallet-state-changed',
         'coin-block',
-        'transactions-next-page',
-        'indexer-connection-status-changed',
         'wallet-error'
+        // 'wallet-state-changed',
+        // 'transactions-next-page', // todo: query until empty response on the the client side
+        // 'indexer-connection-status-changed',
       ],
       name: 'explorer'
     };
   }
 
-  function stop () {
-    // blocksStream.destroy();
-    blocksStream.removeAllListeners();
-    clearInterval(interval);
-    syncer.stop();
+  function stop() {
+    blocksStream.stop()
+    explorer.stopWatching()
   }
 
   return {
