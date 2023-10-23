@@ -3,7 +3,7 @@ const axios = require('axios').default;
 
 class EtherscanApi {
   constructor({ baseURL }) {
-    this.api = axios.create({baseURL})
+    this.api = axios.create({ baseURL })
   }
 
   /**
@@ -28,7 +28,9 @@ class EtherscanApi {
       page,
       offset: pageSize
     }
+
     const { data } = await this.api.get('', { params })
+
     const { status, message, result } = data
     if (status !== '1' && message !== 'No transactions found') {
       throw new Error(result)
@@ -46,7 +48,7 @@ class EtherscanApi {
    * @param {number} [pageSize] page size
    * @returns {Promise<string[]>} array of transaction hashes
    */
-  async getEthTransactions(from, to, address, page = 1, pageSize = 1000) {
+  async getEthTransactions(from, to, address, page = 1, pageSize = 10) {
     const params = {
       module: 'account',
       action: 'txlist',
