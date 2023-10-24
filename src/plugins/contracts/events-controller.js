@@ -40,7 +40,7 @@ class EventsController {
    */
   async start() {
     await this.refreshContracts()
-    this.watcher.startWatching(this.updateContract, (e) => {
+    this.watcher.startWatching(this.updateContract.bind(this), (e) => {
       this.eventBus.emit('wallet-error', {
         inner: e,
         message: 'Could not update contract state',
