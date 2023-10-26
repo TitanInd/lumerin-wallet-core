@@ -36,7 +36,7 @@ function mapLMRResToTxEvent(tx) {
   */
 function mapETHResToTxEvent(contractAbi, tx) {
   const funcName = decodeAbiSignature(contractAbi, tx.methodId)
-  const type = mapContractCallToTxType(funcName.name)
+  const type = mapContractCallToTxType(funcName?.name)
   return {
     timestamp: tx.timeStamp,
     txhash: tx.hash,

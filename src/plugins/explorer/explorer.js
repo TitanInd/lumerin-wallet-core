@@ -17,12 +17,11 @@ const { sleep } = require('./watcher-helpers');
  * @param {string} chainId 
  * @param {Web3} web3 
  * @param {LumerinContext} lumerin 
- * @param {string} walletAddress 
  * @param {CloneFactoryContext} cloneFactory 
  */
-const createExplorer = (chainId, web3, lumerin, walletAddress, cloneFactory) => {
+const createExplorer = (chainId, web3, lumerin, cloneFactory) => {
   const apis = createExplorerApis(chainId);
-  return new Explorer({ apis, lumerin, web3, walletAddress, cloneFactory })
+  return new Explorer({ apis, lumerin, web3, cloneFactory })
 }
 
 class Explorer {
@@ -35,7 +34,6 @@ class Explorer {
   /** @type {Indexer[]} */
   apis = [];
   latestSyncedBlock = 0;
-  walletAddress = "0x0"
   stop = false;
   /** @type {Promise<void> | null} */
   job = null;
@@ -44,12 +42,12 @@ class Explorer {
   /** @type {(txEvent: TransactionEvent) => void | null} onChange */
   onChange = null;
 
-  constructor({ apis, lumerin, cloneFactory, web3, walletAddress, pollingIntervalMs = 5000 }) {
+  constructor({ apis, lumerin, cloneFactory, web3, pollingIntervalMs = 5000 }) {
     this.apis = apis
     this.lumerin = lumerin
     this.cloneFactory = cloneFactory
+    this.walletAddress = null;
     this.web3 = web3
-    this.walletAddress = walletAddress
     this.pollingIntervalMs = pollingIntervalMs
   }
 
@@ -57,12 +55,17 @@ class Explorer {
    * Returns list of transactions for ETH and LMR token
    * @param {string} from start block
    * @param {string} to end block
+   * @param {number} page 
+   * @param {number} pageSize
+   * @param {string} [walletAddress]
    * @returns {Promise<TransactionEvent[]>}
    */
-  async getTransactions(from, to, page, pageSize) {
+  async getTransactions(from, to, page, pageSize, walletAddress = this.walletAddress) {
     //@ts-ignore
-    const lmrTransactions = await this.invoke('getTokenTransactions', from, to, this.walletAddress, this.lumerin._address, page, pageSize)
-    const ethTransactions = await this.invoke('getEthTransactions', from, to, this.walletAddress, page, pageSize)
+    const lmrTransactions = await this.invoke('getTokenTransactions', from, to, walletAddress, this.lumerin._address, page, pageSize)
+    console.log("🚀 ~ file: explorer.js:65 ~ Explorer ~ getTransactions ~ lmrTransactions:", lmrTransactions.length)
+    const ethTransactions = await this.invoke('getEthTransactions', from, to, walletAddress, page, pageSize)
+    console.log("🚀 ~ file: explorer.js:67 ~ Explorer ~ getTransactions ~ ethTransactions:", ethTransactions.length)
 
     const abis = this.abis()
 
@@ -117,10 +120,11 @@ class Explorer {
    * @param {(txId: TransactionEvent) => void} onChange 
    * @param {(e: Error) => void} onError 
    */
-  startWatching(onChange, onError) {
+  startWatching(walletAddress, onChange, onError) {
     if (this.job) {
       throw new Error('Already watching')
     }
+    this.walletAddress = walletAddress;
     this.onChange = onChange
     this.onError = onError
     this.job = this.poll()
@@ -133,6 +137,7 @@ class Explorer {
     this.stop = true
     await this.job
     this.job = null
+    this.walletAddress = null;
   }
 
   async poll() {

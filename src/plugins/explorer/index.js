@@ -22,15 +22,7 @@ function createPlugin() {
     const lumerin = Lumerin(web3, config.lmrTokenAddress);
     const cf = CloneFactory(web3, config.cloneFactoryAddress);
 
-    explorer = createExplorer(config.chainId, web3, lumerin, config.walletAddress, cf);
-    explorer.startWatching(
-      (tx) => eventBus.emit('token-transactions-changed', [tx]),
-      (err) => eventBus.emit('wallet-error', {
-        inner: err,
-        message: 'Could not get latest transactions',
-        meta: { plugin: 'explorer' },
-      })
-    )
+    explorer = createExplorer(config.chainId, web3, lumerin, cf);
 
     logger.debug('Initiating blocks stream');
     blocksStream = createBlockStream(web3, config.blocksUpdateMs);
@@ -50,9 +42,29 @@ function createPlugin() {
     return {
       api: {
         logTransaction: explorer.logTransaction,
-        refreshAllTransactions: () => explorer.getTransactions('0', 'latest', 0, 100), // TODO: keep only one method
-        getPastCoinTransactions: () => explorer.getTransactions('0', 'latest', 0, 100),
-        syncTransactions: () => explorer.getTransactions('0', 'latest', 0, 100),
+        refreshAllTransactions: async ({ walletAddress }) => { 
+          console.log("🚀 ~ file: index.js:46 ~ refreshAllTransactions: ~ walletAddress:", walletAddress)
+          const txs = await explorer.getTransactions('0', 'latest', 0, 10, walletAddress); // TODO: keep only one method
+          console.log("🚀 ~ file: index.js:55 ~ refreshAllTransactions: ~ txs:", txs)
+          eventBus.emit('token-transactions-changed', txs);
+        },
+        syncTransactions: async (...args) =>  { 
+          const txs = await explorer.getTransactions(...args);
+          eventBus.emit('token-transactions-changed', txs);
+          return txs;
+        },
+        start: ({ walletAddress }) => {
+          explorer.startWatching(
+            walletAddress,
+            (tx) => eventBus.emit('token-transactions-changed', [tx]),
+            (err) => eventBus.emit('wallet-error', {
+              inner: err,
+              message: 'Could not get latest transactions',
+              meta: { plugin: 'explorer' },
+            })
+          )
+        },
+        stop: () => explorer.stopWatching(),
       },
       events: [
         'token-transactions-changed',
