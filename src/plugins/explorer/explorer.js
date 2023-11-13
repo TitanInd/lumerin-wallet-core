@@ -62,10 +62,8 @@ class Explorer {
    */
   async getTransactions(from, to, page, pageSize, walletAddress = this.walletAddress) {
     //@ts-ignore
-    const lmrTransactions = await this.invoke('getTokenTransactions', from, to, walletAddress, this.lumerin._address, page, pageSize)
-    console.log("🚀 ~ file: explorer.js:65 ~ Explorer ~ getTransactions ~ lmrTransactions:", lmrTransactions.length)
-    const ethTransactions = await this.invoke('getEthTransactions', from, to, walletAddress, page, pageSize)
-    console.log("🚀 ~ file: explorer.js:67 ~ Explorer ~ getTransactions ~ ethTransactions:", ethTransactions.length)
+    const lmrTransactions = await this.invoke('getTokenTransactions', from, to || 'latest', walletAddress, this.lumerin._address, page, pageSize)
+    const ethTransactions = await this.invoke('getEthTransactions', from, to || 'latest', walletAddress, page, pageSize)
 
     const abis = this.abis()
 

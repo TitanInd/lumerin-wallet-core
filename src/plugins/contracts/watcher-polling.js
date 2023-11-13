@@ -76,7 +76,7 @@ class WatcherPolling {
       if (filter.error) {
         logger.error(filter.error.message)
         await sleep(this.pollingIntervalMs)
-        continue
+        continue;
       }
       //@ts-ignore
       const contractAbi = this.cloneFactory._jsonInterface
@@ -92,7 +92,7 @@ class WatcherPolling {
         if (changes.error) {
           logger.error(changes.error.message)
           await sleep(this.pollingIntervalMs)
-          continue
+          break;
         }
 
         for (const event of changes.result) {

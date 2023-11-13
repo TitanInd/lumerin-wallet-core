@@ -43,17 +43,25 @@ function createPlugin() {
       api: {
         logTransaction: explorer.logTransaction,
         refreshAllTransactions: async ({ walletAddress }) => { 
-          console.log("🚀 ~ file: index.js:46 ~ refreshAllTransactions: ~ walletAddress:", walletAddress)
-          const txs = await explorer.getTransactions('0', 'latest', 0, 10, walletAddress); // TODO: keep only one method
-          console.log("🚀 ~ file: index.js:55 ~ refreshAllTransactions: ~ txs:", txs)
-          eventBus.emit('token-transactions-changed', txs);
+          // console.log("🚀 ~ file: index.js:46 ~ refreshAllTransactions: ~ walletAddress:", walletAddress)
+          // const txs = await explorer.getTransactions('0', 'latest', 0, 10, walletAddress); // TODO: keep only one method
+          // console.log("🚀 ~ file: index.js:55 ~ refreshAllTransactions: ~ txs:", txs)
+          // eventBus.emit('token-transactions-changed', txs);
         },
         syncTransactions: async (...args) =>  { 
           const txs = await explorer.getTransactions(...args);
+          if(args[2] && args[3]) {
+            const hasNextPage = txs.length;
+            eventBus.emit('transactions-next-page', {
+              hasNextPage: Boolean(hasNextPage),
+              page: args[2] + 1,
+            })
+          }
+
           eventBus.emit('token-transactions-changed', txs);
           return txs;
         },
-        start: ({ walletAddress }) => {
+        startWatching: ({ walletAddress }) => {
           explorer.startWatching(
             walletAddress,
             (tx) => eventBus.emit('token-transactions-changed', [tx]),
@@ -69,9 +77,9 @@ function createPlugin() {
       events: [
         'token-transactions-changed',
         'coin-block',
-        'wallet-error'
+        'wallet-error',
         // 'wallet-state-changed',
-        // 'transactions-next-page', // todo: query until empty response on the the client side
+        'transactions-next-page', // todo: query until empty response on the the client side
         // 'indexer-connection-status-changed',
       ],
       name: 'explorer'
