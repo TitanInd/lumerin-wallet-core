@@ -47,7 +47,7 @@ class Web3Http extends Web3 {
           logger.error(
             `Switched to provider: ${this.providers[this.currentIndex].host}`
           )
-          await new Promise((resolve) => setTimeout(resolve, 500));
+          await new Promise((resolve) => setTimeout(resolve, 750));
           this.retryCount += 1
           this.currentProvider.send(payload, callback) // Retry the request
         } else {

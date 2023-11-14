@@ -68,7 +68,8 @@ function createPlugin() {
           lumerin,
           cloneFactory,
           addresses,
-          walletAddress
+          walletAddress, 
+          eventBus,
         )
           .then((contracts) => {
             eventBus.emit('contracts-scan-finished', {

@@ -112,20 +112,32 @@ async function getContracts(
   lumerin,
   cloneFactory,
   addresses,
-  walletAddress
+  walletAddress,
+  eventBus,
 ) {
-  return Promise.all(
-    addresses.map((address) =>
-      getContract(
-        web3,
-        web3Subscriptionable,
-        lumerin,
-        cloneFactory,
-        address,
-        walletAddress
-      )
+  const chunkSize = 5
+  const result = []
+  for (let i = 0; i < addresses.length; i += chunkSize) {
+    const contracts = await Promise.all(
+      addresses
+        .slice(i, i + chunkSize)
+        .map((address) =>
+          getContract(
+            web3,
+            web3Subscriptionable,
+            lumerin,
+            cloneFactory,
+            address,
+            walletAddress
+          )
+        )
     )
-  )
+    eventBus.emit('contract-updated', {
+      actives: contracts,
+    })
+    result.push(...contracts);
+  }
+  return result;
 }
 
 /**
@@ -162,7 +174,7 @@ async function getContract(
  * @param {import('contracts-js').CloneFactoryContext} cloneFactory
  */
 const getMarketplaceFee = (cloneFactory) => async () => {
-  return await cloneFactory.methods.marketplaceFee().call();
+  return await cloneFactory.methods.marketplaceFee().call()
 }
 
 /**
@@ -201,7 +213,7 @@ function createContract(web3, cloneFactory) {
 
     const account = web3.eth.accounts.privateKeyToAccount(privateKey)
     web3.eth.accounts.wallet.create(0).add(account)
-    const marketplaceFee = await cloneFactory.methods.marketplaceFee().call();
+    const marketplaceFee = await cloneFactory.methods.marketplaceFee().call()
 
     const gas = await cloneFactory.methods
       .setCreateNewRentalContract(
@@ -214,7 +226,7 @@ function createContract(web3, cloneFactory) {
       )
       .estimateGas({
         from: sellerAddress,
-        value: marketplaceFee
+        value: marketplaceFee,
       })
 
     return cloneFactory.methods
@@ -251,13 +263,13 @@ function cancelContract(web3, cloneFactory) {
     const account = web3.eth.accounts.privateKeyToAccount(privateKey)
     web3.eth.accounts.wallet.create(0).add(account)
 
-    const marketplaceFee = await cloneFactory.methods.marketplaceFee().call();
+    const marketplaceFee = await cloneFactory.methods.marketplaceFee().call()
 
     const gas = await Implementation(web3, contractId)
       .methods.setContractCloseOut(closeOutType)
       .estimateGas({
         from: walletAddress,
-        value: marketplaceFee
+        value: marketplaceFee,
       })
 
     return await Implementation(web3, contractId)
@@ -265,7 +277,7 @@ function cancelContract(web3, cloneFactory) {
       .send({
         from: walletAddress,
         gas,
-        value: marketplaceFee
+        value: marketplaceFee,
       })
   }
 }
@@ -354,22 +366,30 @@ function purchaseContract(web3, cloneFactory, lumerin) {
     await lumerin.methods
       .increaseAllowance(cloneFactory.options.address, price)
       .send(sendOptions)
-    
-    const marketplaceFee = await cloneFactory.methods.marketplaceFee().call();
+
+    const marketplaceFee = await cloneFactory.methods.marketplaceFee().call()
 
     const purchaseGas = await cloneFactory.methods
-      .setPurchaseRentalContract(contractId, ciphertext.toString('hex'), version)
+      .setPurchaseRentalContract(
+        contractId,
+        ciphertext.toString('hex'),
+        version
+      )
       .estimateGas({
         from: sendOptions.from,
-        value: marketplaceFee
+        value: marketplaceFee,
       })
 
     const purchaseResult = await cloneFactory.methods
-      .setPurchaseRentalContract(contractId, ciphertext.toString('hex'), version)
+      .setPurchaseRentalContract(
+        contractId,
+        ciphertext.toString('hex'),
+        version
+      )
       .send({
         ...sendOptions,
         gas: purchaseGas,
-        value: marketplaceFee
+        value: marketplaceFee,
       })
 
     logger.debug('Finished puchase transaction', purchaseResult)
@@ -399,7 +419,7 @@ function editContract(web3, cloneFactory, lumerin) {
     const account = web3.eth.accounts.privateKeyToAccount(privateKey)
     web3.eth.accounts.wallet.create(0).add(account)
 
-    const marketplaceFee = await cloneFactory.methods.marketplaceFee().call();
+    const marketplaceFee = await cloneFactory.methods.marketplaceFee().call()
 
     const editGas = await cloneFactory.methods
       .setUpdateContractInformation(contractId, price, limit, speed, duration)
@@ -428,5 +448,5 @@ module.exports = {
   purchaseContract,
   setContractDeleteStatus,
   editContract,
-  getMarketplaceFee
+  getMarketplaceFee,
 }
