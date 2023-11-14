@@ -113,7 +113,7 @@ async function getContracts(
   cloneFactory,
   addresses,
   walletAddress,
-  eventBus,
+  eventBus
 ) {
   const chunkSize = 5
   const result = []
@@ -135,9 +135,9 @@ async function getContracts(
     eventBus.emit('contract-updated', {
       actives: contracts,
     })
-    result.push(...contracts);
+    result.push(...contracts)
   }
-  return result;
+  return result
 }
 
 /**
@@ -254,7 +254,6 @@ function cancelContract(web3, cloneFactory) {
   return async function (params) {
     const {
       walletAddress,
-      gasLimit = 1000000,
       contractId,
       privateKey,
       closeOutType,
@@ -295,7 +294,6 @@ function setContractDeleteStatus(web3, cloneFactory, onUpdate) {
   return async function (params) {
     const {
       walletAddress,
-      gasLimit = 3000000,
       contractId,
       privateKey,
       deleteContract,
@@ -340,7 +338,7 @@ function setContractDeleteStatus(web3, cloneFactory, onUpdate) {
 function purchaseContract(web3, cloneFactory, lumerin) {
   return async (params) => {
     const { walletId, contractId, url, privateKey, price, version } = params
-    const sendOptions = { from: walletId, gas: 1_000_000 }
+    const sendOptions = { from: walletId }
 
     //getting pubkey from contract to be purchased
     const implementationContract = Implementation(web3, contractId)
@@ -363,9 +361,18 @@ function purchaseContract(web3, cloneFactory, lumerin) {
       throw new Error('Contract is deleted already')
     }
 
+    const increaseAllowanceEstimate = await lumerin.methods
+      .increaseAllowance(cloneFactory.options.address, price)
+      .estimateGas({
+        from: walletId,
+      })
+
     await lumerin.methods
       .increaseAllowance(cloneFactory.options.address, price)
-      .send(sendOptions)
+      .send({
+        from: walletId,
+        gas: increaseAllowanceEstimate,
+      })
 
     const marketplaceFee = await cloneFactory.methods.marketplaceFee().call()
 
@@ -414,7 +421,7 @@ function editContract(web3, cloneFactory, lumerin) {
       speed,
       duration,
     } = params
-    const sendOptions = { from: walletId, gas: 1_000_000 }
+    const sendOptions = { from: walletId }
 
     const account = web3.eth.accounts.privateKeyToAccount(privateKey)
     web3.eth.accounts.wallet.create(0).add(account)
