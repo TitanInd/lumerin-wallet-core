@@ -34,10 +34,10 @@ class Web3Http extends Web3 {
     const originalSend = this.currentProvider.send.bind(this.currentProvider)
     this.currentProvider.send = (payload, callback) => {
       originalSend(payload, async (error, response) => {
-        if (error || response.error) {
+        if (error || response.error?.code === 429) {
           // Avoid infinite loop
           if (this.retryCount >= this.providers.length) {
-            callback(error || response.error, null)
+            callback(error, response)
             this.retryCount = 0
             return;
           }
