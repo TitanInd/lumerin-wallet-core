@@ -33,11 +33,11 @@ class Web3Http extends Web3 {
     // Hook into provider's request and response handling
     const originalSend = this.currentProvider.send.bind(this.currentProvider)
     this.currentProvider.send = (payload, callback) => {
-      originalSend(payload, (error, response) => {
-        if (error) {
+      originalSend(payload, async (error, response) => {
+        if (error || response.error) {
           // Avoid infinite loop
           if (this.retryCount >= this.providers.length) {
-            callback(error, null)
+            callback(error || response.error, null)
             this.retryCount = 0
             return;
           }
@@ -47,6 +47,7 @@ class Web3Http extends Web3 {
           logger.error(
             `Switched to provider: ${this.providers[this.currentIndex].host}`
           )
+          await new Promise((resolve) => setTimeout(resolve, 500));
           this.retryCount += 1
           this.currentProvider.send(payload, callback) // Retry the request
         } else {
