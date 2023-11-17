@@ -17,8 +17,18 @@ const isRateLimitError = (response) => {
     message.includes('too many requests') ||
     message.includes('rate limit exceeded') ||
     message.includes('reached maximum qps limit') ||
-    message.includes('rate limit reached')
-  )
+    message.includes('rate limit reached') || 
+    message.includes("we can't execute this request")
+  );
+}
+
+const timeouts = {
+  0: 500,
+  1: 750,
+  2: 1000,
+  3: 1500,
+  4: 2000,
+  5: 2000,
 }
 
 class Web3Http extends Web3 {
@@ -55,7 +65,7 @@ class Web3Http extends Web3 {
       originalSend(payload, async (error, response) => {
         if (error || isRateLimitError(response)) {
           // Avoid infinite loop
-          if (this.retryCount >= this.providers.length) {
+          if (this.retryCount >= this.providers.length * 2) {
             callback(error, response)
             this.retryCount = 0
             return
@@ -63,12 +73,15 @@ class Web3Http extends Web3 {
           // If the request fails, switch to the next provider and try again
           this.currentIndex = (this.currentIndex + 1) % this.providers.length
           this.setCustomProvider(this.providers[this.currentIndex])
-          logger.error(
-            `Switched to provider: ${this.providers[this.currentIndex].host}`
-          )
-          await new Promise((resolve) => setTimeout(resolve, 750))
+          logger.error(error || JSON.stringify(response.error));
           this.retryCount += 1
-          this.currentProvider.send(payload, callback) // Retry the request
+          const timeout = timeouts[this.retryCount] || 1000;
+          logger.error(
+            `Switched to provider: ${this.providers[this.currentIndex].host}, timeout: ${timeout}`
+          )
+          await new Promise((resolve) => setTimeout(resolve, timeout))
+
+          this.currentProvider.send(payload, callback)
         } else {
           this.retryCount = 0
           callback(null, response)
