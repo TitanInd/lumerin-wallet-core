@@ -3,7 +3,7 @@ const { getContract } = require('./api');
 /**
  * Interface for a contract watcher
  * @typedef Watcher
- * @prop {(onChange: (contractID: string) => void, onError: (e: Error) => void) => void} startWatching
+ * @prop {(onChange: (contractID: string) => void, onError: (e: Error) => void, block: number) => void} startWatching
  * @prop {() => Promise<void>} stopWatching
  */
 
@@ -40,13 +40,14 @@ class EventsController {
    */
   async start() {
     await this.refreshContracts()
+    const lastBlock = await this.web3.eth.getBlockNumber()
     this.watcher.startWatching(this.updateContract.bind(this), (e) => {
       this.eventBus.emit('wallet-error', {
         inner: e,
         message: 'Could not update contract state',
         meta: { plugin: 'contracts' },
       })
-    })
+    }, lastBlock)
   }
 
   /**
@@ -61,9 +62,18 @@ class EventsController {
    */
   async refreshContracts() {
     this.eventBus.emit('contracts-scan-started')
-    const contractIDs = await this.cloneFactory.methods.getContractList().call()
-    for (const contractID of contractIDs) {
-      await this.updateContract(contractID)
+    const contractIDs = await this.cloneFactory.methods.getContractList().call();
+
+    // cannot use .revese() because it mutates the original array, which is not allowed in readonly {contractIDs}
+    const reversedContracts = [];
+    for (let i = contractIDs.length - 1; i >= 0; i--) {
+      reversedContracts.push(contractIDs[i]);
+    }
+
+    const chunkSize = 5;
+    for (let i = 0; i < reversedContracts.length; i += chunkSize) {
+      const chunk = reversedContracts.slice(i, i + chunkSize);
+      await Promise.all(chunk.map((id) => this.updateContract(id)))
     }
     this.eventBus.emit("contracts-scan-finished")
   }

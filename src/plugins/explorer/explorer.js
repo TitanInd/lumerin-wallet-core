@@ -13,15 +13,18 @@ const { sleep } = require('./watcher-helpers');
  * @typedef {import("web3-core").TransactionReceipt} TransactionReceipt
  */
 
+
 /**
- * @param {string} chainId 
- * @param {Web3} web3 
- * @param {LumerinContext} lumerin 
- * @param {CloneFactoryContext} cloneFactory 
+ * 
+ * @param {string[]} explorerApiURLs 
+ * @param {*} web3 
+ * @param {*} lumerin 
+ * @param {*} cf 
+ * @returns 
  */
-const createExplorer = (chainId, web3, lumerin, cloneFactory) => {
-  const apis = createExplorerApis(chainId);
-  return new Explorer({ apis, lumerin, web3, cloneFactory })
+const createExplorer = (explorerApiURLs, web3, lumerin, cf) => {
+  const apis = createExplorerApis(explorerApiURLs);
+  return new Explorer({ apis, lumerin, web3, cloneFactory: cf })
 }
 
 class Explorer {
@@ -145,7 +148,7 @@ class Explorer {
           return
         }
         try {
-          const txs = await this.getTransactions(String(this.latestSyncedBlock), "latest", page, this.pageSize)
+          const txs = await this.getTransactions(String(this.latestSyncedBlock + 1), "latest", page, this.pageSize)
           for (const tx of txs) {
             this.onChange(tx)
             if (tx.blockNumber > this.latestSyncedBlock) {

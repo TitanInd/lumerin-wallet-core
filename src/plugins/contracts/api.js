@@ -93,7 +93,7 @@ async function getContractHistory(web3, contractId, walletAddress) {
  * @param {import('contracts-js').CloneFactoryContext} cloneFactory
  */
 const getMarketplaceFee = (cloneFactory) => async () => {
-  return await cloneFactory.methods.marketplaceFee().call();
+  return await cloneFactory.methods.marketplaceFee().call()
 }
 
 /**
@@ -131,7 +131,7 @@ function createContract(web3, cloneFactory) {
 
     const account = web3.eth.accounts.privateKeyToAccount(privateKey)
     web3.eth.accounts.wallet.create(0).add(account)
-    const marketplaceFee = await cloneFactory.methods.marketplaceFee().call();
+    const marketplaceFee = await cloneFactory.methods.marketplaceFee().call()
 
     const gas = await cloneFactory.methods
       .setCreateNewRentalContract(
@@ -144,7 +144,7 @@ function createContract(web3, cloneFactory) {
       )
       .estimateGas({
         from: sellerAddress,
-        value: marketplaceFee
+        value: marketplaceFee,
       })
 
     return cloneFactory.methods
@@ -181,13 +181,13 @@ function cancelContract(web3, cloneFactory) {
     const account = web3.eth.accounts.privateKeyToAccount(privateKey)
     web3.eth.accounts.wallet.create(0).add(account)
 
-    const marketplaceFee = await cloneFactory.methods.marketplaceFee().call();
+    const marketplaceFee = await cloneFactory.methods.marketplaceFee().call()
 
     const gas = await cloneFactory.methods
       .setContractCloseout(contractId, closeOutType)
       .estimateGas({
         from: walletAddress,
-        value: marketplaceFee
+        value: marketplaceFee,
       })
 
     return await cloneFactory.methods
@@ -195,7 +195,7 @@ function cancelContract(web3, cloneFactory) {
       .send({
         from: walletAddress,
         gas,
-        value: marketplaceFee
+        value: marketplaceFee,
       })
   }
 }
@@ -256,7 +256,7 @@ function setContractDeleteStatus(web3, cloneFactory, onUpdate) {
 function purchaseContract(web3, cloneFactory, lumerin) {
   return async (params) => {
     const { walletId, contractId, url, privateKey, price, version } = params
-    const sendOptions = { from: walletId, gas: 1_000_000 }
+    const sendOptions = { from: walletId }
 
     //getting pubkey from contract to be purchased
     const implementationContract = Implementation(web3, contractId)
@@ -277,25 +277,42 @@ function purchaseContract(web3, cloneFactory, lumerin) {
       throw new Error('Contract is deleted already')
     }
 
+    const increaseAllowanceEstimate = await lumerin.methods
+      .increaseAllowance(cloneFactory.options.address, price)
+      .estimateGas({
+        from: walletId,
+      })
+
     await lumerin.methods
       .increaseAllowance(cloneFactory.options.address, price)
-      .send(sendOptions)
+      .send({
+        from: walletId,
+        gas: increaseAllowanceEstimate,
+      })
 
-    const marketplaceFee = await cloneFactory.methods.marketplaceFee().call();
+    const marketplaceFee = await cloneFactory.methods.marketplaceFee().call()
 
     const purchaseGas = await cloneFactory.methods
-      .setPurchaseRentalContract(contractId, ciphertext.toString('hex'), version)
+      .setPurchaseRentalContract(
+        contractId,
+        ciphertext.toString('hex'),
+        version
+      )
       .estimateGas({
         from: sendOptions.from,
-        value: marketplaceFee
+        value: marketplaceFee,
       })
 
     const purchaseResult = await cloneFactory.methods
-      .setPurchaseRentalContract(contractId, ciphertext.toString('hex'), version)
+      .setPurchaseRentalContract(
+        contractId,
+        ciphertext.toString('hex'),
+        version
+      )
       .send({
         ...sendOptions,
         gas: purchaseGas,
-        value: marketplaceFee
+        value: marketplaceFee,
       })
 
     logger.debug('Finished puchase transaction', purchaseResult)
@@ -323,7 +340,7 @@ function editContract(web3, cloneFactory) {
     const account = web3.eth.accounts.privateKeyToAccount(privateKey)
     web3.eth.accounts.wallet.create(0).add(account)
 
-    const marketplaceFee = await cloneFactory.methods.marketplaceFee().call();
+    const marketplaceFee = await cloneFactory.methods.marketplaceFee().call()
 
     const editGas = await cloneFactory.methods
       .setUpdateContractInformation(contractId, price, limit, speed, duration)
@@ -352,5 +369,5 @@ module.exports = {
   purchaseContract,
   setContractDeleteStatus,
   editContract,
-  getMarketplaceFee
+  getMarketplaceFee,
 }

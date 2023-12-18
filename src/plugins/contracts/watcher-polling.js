@@ -2,8 +2,7 @@
 /** @type {typeof import('web3-eth-abi').default} */
 //@ts-ignore
 const abi = require('web3-eth-abi')
-const { promisify } = require('util')
-const { decodeEvent, jsonrpcid, sleep } = require('../explorer/watcher-helpers')
+const { sleep } = require('../explorer/watcher-helpers')
 const logger = require('../../logger')
 
 const CONTRACT_CREATED = 'contractCreated(address,string)'
@@ -31,6 +30,8 @@ class WatcherPolling {
   contracts = new Map()
   /** @type {(contractID: string) => void} */
   onChange = null
+  /** @type {(error: any) => void} */
+  onError = null
 
   /**
    * @param {import('web3').default} web3
@@ -43,14 +44,17 @@ class WatcherPolling {
     this.walletAddress = walletAddress
     this.cloneFactory = cloneFactory
     this.pollingIntervalMs = pollingIntervalMs
+    this.lastSyncedBlock = 0
   }
 
   /** @param { (contractID: string) => void} onChange */
-  startWatching(onChange) {
+  startWatching(onChange, onError, fromBlock) {
     if ((this.job = null)) {
       throw new Error('Already started')
     }
+    this.lastSyncedBlock = +fromBlock
     this.onChange = onChange
+    this.onError = onError
     this.stop = false
     this.job = this.poller()
   }
@@ -71,96 +75,81 @@ class WatcherPolling {
         return
       }
 
-      const filter = await this.createFilter()
-
-      if (filter.error) {
-        logger.error(filter.error.message)
-        await sleep(this.pollingIntervalMs)
-        continue;
-      }
-      //@ts-ignore
-      const contractAbi = this.cloneFactory._jsonInterface
-
-      for (;;) {
-        const changes = await this.sendRaw({
-          id: jsonrpcid(),
-          jsonrpc: '2.0',
-          method: 'eth_getFilterChanges',
-          params: [filter.result],
-        })
-
-        if (changes.error) {
-          logger.error(changes.error.message)
-          await sleep(this.pollingIntervalMs)
-          break;
-        }
-
-        for (const event of changes.result) {
+      try {
+        const changes = await this.getChanges()
+  
+        for (const log of changes) {
           if (this.stop) {
             break
           }
-
-          switch (event.topics[0]) {
-            case CONTRACT_CREATED_SIG:
-              this.onChange(decodeEvent(contractAbi, event)._address)
+  
+          const { topics, blockNumber, data } = log
+          const [eventTopic, contractAddressTopic] = topics
+          const contractAddress = this.decodeAddress(data, contractAddressTopic)
+          switch (eventTopic) {
+            case CONTRACT_CLOSED_SIG:
+              this.onChange(contractAddress)
               break
             case CONTRACT_PURCHASED_SIG:
-              this.onChange(decodeEvent(contractAbi, event)._address)
+              this.onChange(contractAddress)
               break
             case CONTRACT_DELETE_UPDATED_SIG:
-              this.onChange(decodeEvent(contractAbi, event)._address)
+              this.onChange(contractAddress)
               break
-            case CONTRACT_CLOSED_SIG:
-              this.onChange(decodeEvent(contractAbi, event)._address)
+            case CONTRACT_CREATED_SIG:
+              this.onChange(contractAddress)
               break
             case CONTRACT_UPDATED_SIG:
-              this.onChange(decodeEvent(contractAbi, event)._address)
+              this.onChange(contractAddress)
               break
           }
-        }
-
-        await sleep(this.pollingIntervalMs)
+  
+          if (+this.lastSyncedBlock < blockNumber) {
+            this.lastSyncedBlock = blockNumber
+          }
+        } 
+      } catch (err) {
+        logger.error(`WatcherPolling error: ${err}`)
+        this.onError(err)
       }
+
+      await sleep(this.pollingIntervalMs)
     }
   }
 
-  // monitors all contracts
-  async createFilter() {
-    return await this.sendRaw({
-      id: jsonrpcid(),
-      jsonrpc: '2.0',
-      method: 'eth_newFilter',
-      params: [
+  decodeAddress(data, topic) {
+    return this.web3.eth.abi.decodeLog(
+      [
         {
-          address: [
-            //@ts-ignore
-            this.cloneFactory._address,
-          ],
-          // fromBlock: '0x0',
-          toBlock: 'latest',
-          topics: [
-            [
-              CONTRACT_CREATED_SIG,
-              CONTRACT_PURCHASED_SIG,
-              CONTRACT_DELETE_UPDATED_SIG,
-              CONTRACT_CLOSED_SIG,
-              CONTRACT_UPDATED_SIG,
-            ],
-          ],
+          type: 'address',
+          name: '_address',
+          indexed: true,
         },
       ],
-    })
+      data,
+      topic
+    )._address
   }
 
-  /**
-   * @param {import("web3-core-helpers").JsonRpcPayload} params
-   * @returns {Promise<import("web3-core-helpers").JsonRpcResponse>}
-   */
-  sendRaw(params) {
-    /** @type {import('web3-core').HttpProvider} */
-    //@ts-ignore
-    const provider = this.web3.currentProvider
-    return promisify(provider.send.bind(provider))(params)
+  async getChanges() {
+    const options = {
+      fromBlock: this.lastSyncedBlock,
+      toBlock: 'latest',
+      address: this.cloneFactory._address,
+    }
+    const changes = await this.web3.eth.getPastLogs({
+      ...options,
+      topics: [
+        [
+          CONTRACT_CREATED_SIG,
+          CONTRACT_PURCHASED_SIG,
+          CONTRACT_DELETE_UPDATED_SIG,
+          CONTRACT_CLOSED_SIG,
+          CONTRACT_UPDATED_SIG,
+        ],
+      ],
+    })
+    return changes
   }
 }
 

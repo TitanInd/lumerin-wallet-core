@@ -22,7 +22,7 @@ function createPlugin() {
     const lumerin = Lumerin(web3, config.lmrTokenAddress);
     const cf = CloneFactory(web3, config.cloneFactoryAddress);
 
-    explorer = createExplorer(config.chainId, web3, lumerin, cf);
+    explorer = createExplorer(config.explorerApiURLs, web3, lumerin, cf);
 
     logger.debug('Initiating blocks stream');
     blocksStream = createBlockStream(web3, config.blocksUpdateMs);
@@ -30,6 +30,7 @@ function createPlugin() {
     blocksStream.stream.on('data', function ({ hash, number, timestamp }) {
       logger.debug('New block', hash, number);
       eventBus.emit('coin-block', { hash, number, timestamp });
+      eventBus.emit('web3-connection-status-changed', { connected: true });
     }).on('error', function (err) {
       logger.debug('Could not get latest block');
       eventBus.emit('wallet-error', {
@@ -37,6 +38,7 @@ function createPlugin() {
         message: 'Could not get latest block',
         meta: { plugin: 'explorer' }
       });
+      eventBus.emit('web3-connection-status-changed', { connected: false });
     });
 
     return {
@@ -48,13 +50,14 @@ function createPlugin() {
           // console.log("🚀 ~ file: index.js:55 ~ refreshAllTransactions: ~ txs:", txs)
           // eventBus.emit('token-transactions-changed', txs);
         },
-        syncTransactions: async (...args) =>  { 
-          const txs = await explorer.getTransactions(...args);
-          if(args[2] && args[3]) {
+        syncTransactions: async (from, to, page, pageSize, walletAddress) =>  { 
+          console.log("🚀 ~ file: index.js:52 ~ syncTransactions: ~ args:", from, to, page, pageSize, walletAddress)
+          const txs = await explorer.getTransactions(from, to, page, pageSize, walletAddress);
+          if(page && pageSize) {
             const hasNextPage = txs.length;
             eventBus.emit('transactions-next-page', {
               hasNextPage: Boolean(hasNextPage),
-              page: args[2] + 1,
+              page: page + 1,
             })
           }
 
@@ -78,6 +81,7 @@ function createPlugin() {
         'token-transactions-changed',
         'coin-block',
         'wallet-error',
+        'web3-connection-status-changed',
         // 'wallet-state-changed',
         'transactions-next-page', // todo: query until empty response on the the client side
         // 'indexer-connection-status-changed',
