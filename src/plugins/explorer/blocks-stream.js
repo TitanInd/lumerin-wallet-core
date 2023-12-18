@@ -19,7 +19,9 @@ function createStream(web3, updateInterval = 10000) {
 
   const stop = () => {
     stream.removeAllListeners()
-    clearInterval(interval)
+    if (interval) {
+      clearInterval(interval)
+    }
   }
 
   return { stream, stop };

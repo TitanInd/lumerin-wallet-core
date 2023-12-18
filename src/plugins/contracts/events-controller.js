@@ -1,3 +1,4 @@
+const logger = require('../../logger');
 const { getContract } = require('./api');
 
 /**
@@ -42,6 +43,7 @@ class EventsController {
     await this.refreshContracts()
     const lastBlock = await this.web3.eth.getBlockNumber()
     this.watcher.startWatching(this.updateContract.bind(this), (e) => {
+      logger.error(`WatcherPolling error: ${e}`)
       this.eventBus.emit('wallet-error', {
         inner: e,
         message: 'Could not update contract state',

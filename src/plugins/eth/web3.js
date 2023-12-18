@@ -1,5 +1,6 @@
 'use strict'
 
+const logger = require('../../logger');
 const { Web3Http } = require('./web3Http');
 
 
@@ -10,7 +11,9 @@ function createWeb3(config) {
 }
 
 function destroyWeb3(web3) {
-  web3.currentProvider?.disconnect()
+  web3.currentProvider?.disconnect().catch(() => {
+    logger.error('Web3 disconnect error')
+  })
 }
 
 module.exports = {
