@@ -3,7 +3,6 @@
 //@ts-ignore
 const abi = require('web3-eth-abi')
 const { sleep } = require('../explorer/watcher-helpers')
-const logger = require('../../logger')
 
 const CONTRACT_CREATED = 'contractCreated(address,string)'
 const CONTRACT_PURCHASED = 'clonefactoryContractPurchased(address,address)'
@@ -49,7 +48,7 @@ class WatcherPolling {
 
   /** @param { (contractID: string) => void} onChange */
   startWatching(onChange, onError, fromBlock) {
-    if ((this.job = null)) {
+    if (this.job !== null) {
       throw new Error('Already started')
     }
     this.lastSyncedBlock = +fromBlock
@@ -109,7 +108,6 @@ class WatcherPolling {
           }
         } 
       } catch (err) {
-        logger.error(`WatcherPolling error: ${err}`)
         this.onError(err)
       }
 

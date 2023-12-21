@@ -22,7 +22,7 @@ function createPlugin() {
     const lumerin = Lumerin(web3, config.lmrTokenAddress);
     const cf = CloneFactory(web3, config.cloneFactoryAddress);
 
-    explorer = createExplorer(config.explorerApiURLs, web3, lumerin, cf);
+    explorer = createExplorer(config.explorerApiURLs, web3, lumerin, cf, config.pollingIntervalMs);
 
     logger.debug('Initiating blocks stream');
     blocksStream = createBlockStream(web3, config.blocksUpdateMs);
@@ -44,14 +44,7 @@ function createPlugin() {
     return {
       api: {
         logTransaction: explorer.logTransaction,
-        refreshAllTransactions: async ({ walletAddress }) => { 
-          // console.log("🚀 ~ file: index.js:46 ~ refreshAllTransactions: ~ walletAddress:", walletAddress)
-          // const txs = await explorer.getTransactions('0', 'latest', 0, 10, walletAddress); // TODO: keep only one method
-          // console.log("🚀 ~ file: index.js:55 ~ refreshAllTransactions: ~ txs:", txs)
-          // eventBus.emit('token-transactions-changed', txs);
-        },
         syncTransactions: async (from, to, page, pageSize, walletAddress) =>  { 
-          console.log("🚀 ~ file: index.js:52 ~ syncTransactions: ~ args:", from, to, page, pageSize, walletAddress)
           const txs = await explorer.getTransactions(from, to, page, pageSize, walletAddress);
           if(page && pageSize) {
             const hasNextPage = txs.length;
@@ -83,7 +76,7 @@ function createPlugin() {
         'wallet-error',
         'web3-connection-status-changed',
         // 'wallet-state-changed',
-        'transactions-next-page', // todo: query until empty response on the the client side
+        'transactions-next-page',
         // 'indexer-connection-status-changed',
       ],
       name: 'explorer'

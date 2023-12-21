@@ -33,7 +33,7 @@ function createPlugin() {
     const lumerin = Lumerin(web3, lmrTokenAddress)
     const cloneFactory = CloneFactory(web3, cloneFactoryAddress)
 
-    const watcher = new WatcherPolling(web3, config.walletAddress, cloneFactory ,3000)
+    const watcher = new WatcherPolling(web3, config.walletAddress, cloneFactory ,config.pollingIntervalMs)
     eventsController = new EventsController(
       web3, eventBus, watcher, config.walletAddress, cloneFactory
     )

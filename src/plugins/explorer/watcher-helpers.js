@@ -47,13 +47,8 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-function jsonrpcid() {
-  return Math.floor(Math.random() * 1000000000)
-}
-
 module.exports = {
   decodeEvent,
   decodeAbiSignature,
   sleep,
-  jsonrpcid,
 }

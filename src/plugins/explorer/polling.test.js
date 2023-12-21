@@ -12,7 +12,7 @@ const walletAddr = process.env.WALLET_ADDRESS || ""
 const cfAddr = process.env.CLONEFACTORY_ADDRESS || ""
 
 if (!lumerinAddr || !walletAddr || !cfAddr) {
-  throw new Error('LUMERIN_ADDRESS and WALLET_ADDRESS env variables must be set')
+  throw new Error('LUMERIN_ADDRESS or WALLET_ADDRESS or CLONEFACTORY_ADDRESS env variables must be set')
 }
 
 new SubscriptionPolling(web3, lumerinAddr, cfAddr)

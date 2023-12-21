@@ -20,11 +20,12 @@ const { sleep } = require('./watcher-helpers');
  * @param {*} web3 
  * @param {*} lumerin 
  * @param {*} cf 
+ * @param {number} [pollingIntervalMs]
  * @returns 
  */
-const createExplorer = (explorerApiURLs, web3, lumerin, cf) => {
+const createExplorer = (explorerApiURLs, web3, lumerin, cf, pollingIntervalMs) => {
   const apis = createExplorerApis(explorerApiURLs);
-  return new Explorer({ apis, lumerin, web3, cloneFactory: cf })
+  return new Explorer({ apis, lumerin, web3, cloneFactory: cf, pollingIntervalMs })
 }
 
 class Explorer {
@@ -64,6 +65,9 @@ class Explorer {
    * @returns {Promise<TransactionEvent[]>}
    */
   async getTransactions(from, to, page, pageSize, walletAddress = this.walletAddress) {
+    if (!walletAddress) {
+      throw new Error('walletAddress is required');
+    }
     //@ts-ignore
     const lmrTransactions = await this.invoke('getTokenTransactions', from, to || 'latest', walletAddress, this.lumerin._address, page, pageSize)
     const ethTransactions = await this.invoke('getEthTransactions', from, to || 'latest', walletAddress, page, pageSize)
