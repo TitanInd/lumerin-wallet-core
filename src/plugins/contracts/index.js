@@ -43,7 +43,7 @@ function createPlugin() {
         startWatching: eventsController.start.bind(eventsController),
         stopWatching: eventsController.stop.bind(eventsController),
         refreshContracts: eventsController.refreshContracts.bind(eventsController),
-        getContractHistory: (contractAddr) => getContractHistory(web3, contractAddr, config.walletAddress),
+        getContractHistory: ({ contractAddr, walletAddress }) => getContractHistory(web3, contractAddr, walletAddress),
         createContract: createContract(web3, cloneFactory),
         cancelContract: cancelContract(web3, cloneFactory),
         purchaseContract: purchaseContract(web3, cloneFactory, lumerin),
