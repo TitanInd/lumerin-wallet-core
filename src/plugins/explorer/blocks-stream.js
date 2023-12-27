@@ -1,29 +1,30 @@
 'use strict';
 
-const logger = require('../../logger');
 const EventEmitter = require('events');
 
-function createStream (web3, updateInterval = 10000) {
-  const ee = new EventEmitter();
+function createStream(web3, updateInterval = 10000) {
+  const stream = new EventEmitter();
 
-  web3.eth.getBlock('latest')
-    .then(function (block) {
-      ee.emit('data', block);
-    })
-    .catch(function (err) {
-      ee.emit('error', err);
-    })
-
-  const interval = setInterval(async () => {
+  const getBlockFunc = async () => {
     try {
       const block = await web3.eth.getBlock('latest');
-      ee.emit('data', block);
+      stream.emit('data', block);
     } catch (err) {
-      ee.emit('error', err);
+      stream.emit('error', err);
     }
-  }, updateInterval);
+  }
 
-  return { interval, stream: ee };
+  getBlockFunc()
+  const interval = setInterval(getBlockFunc, updateInterval);
+
+  const stop = () => {
+    stream.removeAllListeners()
+    if (interval) {
+      clearInterval(interval)
+    }
+  }
+
+  return { stream, stop };
 }
 
 module.exports = createStream;

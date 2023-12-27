@@ -49,7 +49,7 @@ class Web3Http extends Web3 {
     this.retryCount = 0
 
     // Initialize Web3 with the first provider from the list
-    this.setCustomProvider(this.providers[this.currentIndex])
+    this.setCustomProvider(this.providers[this.currentIndex]);
 
     // Set options if provided
     if (options) {
@@ -90,6 +90,7 @@ class Web3Http extends Web3 {
         }
       })
     }
+
     return true
   }
 

@@ -3,88 +3,89 @@
 const logger = require('../../logger');
 
 const Web3 = require('web3');
-const { Lumerin } = require('contracts-js');
+const { Lumerin, CloneFactory } = require('contracts-js');
 
-const createEventsRegistry = require('./events');
-const { logTransaction } = require('./log-transaction');
-const createQueue = require('./queue');
-const createStream = require('./blocks-stream');
-const createTransactionSyncer = require('./sync-transactions');
-const tryParseEventLog = require('./parse-log');
-const createExplorer = require('./explorer');
+const createBlockStream = require('./blocks-stream');
+const { createExplorer } = require('./explorer');
 
 function createPlugin() {
   let blocksStream;
-  let syncer;
-  let interval;
+  /** @type {import('./explorer').Explorer} */
+  let explorer = null;
 
   function start({ config, eventBus, plugins }) {
     // debug.enabled = config.debug;
-    const { lmrTokenAddress } = config;
 
-    const web3 = new Web3(plugins.eth.web3Provider);
+    /** @type { import('web3').default } */
+    const web3 = plugins.eth.web3
 
-    const web3Subscribable = new Web3(plugins.eth.web3SubscriptionProvider);
+    const lumerin = Lumerin(web3, config.lmrTokenAddress);
+    const cf = CloneFactory(web3, config.cloneFactoryAddress);
 
-    const eventsRegistry = createEventsRegistry();
-    const queue = createQueue(config, eventBus, web3);
-    const lumerin = Lumerin(web3Subscribable, lmrTokenAddress);
-
-    const explorer = createExplorer(config.explorerApiURLs, web3, lumerin, eventBus);
-
-    syncer = createTransactionSyncer(
-      config,
-      eventBus,
-      web3,
-      queue,
-      eventsRegistry,
-      explorer
-    );
+    explorer = createExplorer(config.explorerApiURLs, web3, lumerin, cf, config.pollingIntervalMs);
 
     logger.debug('Initiating blocks stream');
-    const streamData = createStream(web3, config.blocksUpdateMs);
-    blocksStream = streamData.stream;
-    interval = streamData.interval;
+    blocksStream = createBlockStream(web3, config.blocksUpdateMs);
 
-    blocksStream.on('data', function ({ hash, number, timestamp }) {
+    blocksStream.stream.on('data', function ({ hash, number, timestamp }) {
       logger.debug('New block', hash, number);
       eventBus.emit('coin-block', { hash, number, timestamp });
-    });
-    blocksStream.on('error', function (err) {
+      eventBus.emit('web3-connection-status-changed', { connected: true });
+    }).on('error', function (err) {
       logger.debug('Could not get latest block');
       eventBus.emit('wallet-error', {
         inner: err,
         message: 'Could not get latest block',
         meta: { plugin: 'explorer' }
       });
+      eventBus.emit('web3-connection-status-changed', { connected: false });
     });
 
     return {
       api: {
-        logTransaction: logTransaction(queue),
-        refreshAllTransactions: syncer.refreshAllTransactions,
-        registerEvent: eventsRegistry.register,
-        syncTransactions: syncer.syncTransactions,
-        tryParseEventLog: tryParseEventLog(web3, eventsRegistry),
-        getPastCoinTransactions: syncer.getPastCoinTransactions,
+        logTransaction: explorer.logTransaction,
+        syncTransactions: async (from, to, page, pageSize, walletAddress) =>  { 
+          const txs = await explorer.getTransactions(from, to, page, pageSize, walletAddress);
+          if(page && pageSize) {
+            const hasNextPage = txs.length;
+            eventBus.emit('transactions-next-page', {
+              hasNextPage: Boolean(hasNextPage),
+              page: page + 1,
+            })
+          }
+
+          eventBus.emit('token-transactions-changed', txs);
+          return txs;
+        },
+        startWatching: ({ walletAddress }) => {
+          explorer.startWatching(
+            walletAddress,
+            (tx) => eventBus.emit('token-transactions-changed', [tx]),
+            (err) => eventBus.emit('wallet-error', {
+              inner: err,
+              message: 'Could not get latest transactions',
+              meta: { plugin: 'explorer' },
+            })
+          )
+        },
+        stop: () => explorer.stopWatching(),
       },
       events: [
         'token-transactions-changed',
-        'wallet-state-changed',
         'coin-block',
+        'wallet-error',
+        'web3-connection-status-changed',
+        // 'wallet-state-changed',
         'transactions-next-page',
-        'indexer-connection-status-changed',
-        'wallet-error'
+        // 'indexer-connection-status-changed',
       ],
       name: 'explorer'
     };
   }
 
   function stop() {
-    // blocksStream.destroy();
-    blocksStream.removeAllListeners();
-    clearInterval(interval);
-    syncer.stop();
+    blocksStream.stop()
+    explorer.stopWatching()
   }
 
   return {

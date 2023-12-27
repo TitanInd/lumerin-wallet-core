@@ -1,113 +1,65 @@
-//@ts-check
-'use strict'
-
-// const debug = require('debug')('lmr-wallet:core:contracts')
-const logger = require('../../logger');
 const { Lumerin, CloneFactory } = require('contracts-js')
-
-/**
- * @type {typeof import('web3').default}
- */
-//@ts-ignore
-const Web3 = require('web3')
-
 const {
-  getContracts,
   createContract,
   cancelContract,
   purchaseContract,
   setContractDeleteStatus,
   editContract,
-  getMarketplaceFee
+  getMarketplaceFee,
+  getContractHistory
 } = require('./api')
-const { ContractEventsListener } = require('./events-listener')
+const { EventsController } = require('./events-controller');
+const { WatcherPolling } = require('./watcher-polling');
 
 /**
  * Create a plugin instance.
- *
  * @returns {({ start: Function, stop: () => void})} The plugin instance.
  */
 function createPlugin() {
+  /** @type {EventsController | null} */
+  let eventsController = null
+
   /**
    * Start the plugin instance.
-   *
    * @param {object} options Start options.
    * @returns {{ api: {[key: string]:any}, events: string[], name: string }} The instance details.
    */
   function start({ config, eventBus, plugins }) {
     const { lmrTokenAddress, cloneFactoryAddress } = config
-    const { eth } = plugins
 
-    const web3 = eth.web3
-    const web3Subscriptionable = new Web3(plugins.eth.web3SubscriptionProvider)
+    /** @type {import('web3').default} */
+    const web3 = plugins.eth.web3
 
     const lumerin = Lumerin(web3, lmrTokenAddress)
     const cloneFactory = CloneFactory(web3, cloneFactoryAddress)
-    const cloneFactorySubscriptionable = CloneFactory(
-      web3Subscriptionable,
-      cloneFactoryAddress
+
+    const watcher = new WatcherPolling(web3, config.walletAddress, cloneFactory ,config.pollingIntervalMs)
+    eventsController = new EventsController(
+      web3, eventBus, watcher, config.walletAddress, cloneFactory
     )
-
-    const refreshContracts =
-      (web3, lumerin, cloneFactory) => async (contractId, walletAddress) => {
-        eventBus.emit('contracts-scan-started', {})
-        ContractEventsListener.getInstance().walletAddress = walletAddress;
-        const addresses = contractId
-          ? [contractId]
-          : await cloneFactory.methods
-              .getContractList()
-              .call()
-              .catch((error) => {
-                logger.error('cannot get list of contract addresses:', error)
-                throw error
-              })
-
-        return getContracts(
-          web3,
-          web3Subscriptionable,
-          lumerin,
-          cloneFactory,
-          addresses,
-          walletAddress, 
-          eventBus,
-        )
-          .then((contracts) => {
-            eventBus.emit('contracts-scan-finished', {
-              actives: contracts,
-            })
-          })
-        .catch(function (error) {
-          logger.error('Could not sync contracts/events', error)
-          throw error
-        })
-    }
-
-    const contractEventsListener = ContractEventsListener.create(
-      cloneFactorySubscriptionable,
-      config.debug
-    )
-
-    const onUpdate = refreshContracts(web3, lumerin, cloneFactory)
-    contractEventsListener.setOnUpdate(onUpdate)
 
     return {
       api: {
-        refreshContracts: refreshContracts(web3, lumerin, cloneFactory),
+        startWatching: eventsController.start.bind(eventsController),
+        stopWatching: eventsController.stop.bind(eventsController),
+        refreshContracts: eventsController.refreshContracts.bind(eventsController),
+        getContractHistory: ({ contractAddr, walletAddress }) => getContractHistory(web3, contractAddr, walletAddress),
         createContract: createContract(web3, cloneFactory),
         cancelContract: cancelContract(web3, cloneFactory),
         purchaseContract: purchaseContract(web3, cloneFactory, lumerin),
-        editContract: editContract(web3, cloneFactory, lumerin),
+        editContract: editContract(web3, cloneFactory),
         getMarketplaceFee: getMarketplaceFee(cloneFactory),
         setContractDeleteStatus: setContractDeleteStatus(
           web3,
           cloneFactory,
-          onUpdate,
+          eventsController.updateContract.bind(eventsController),
         ),
       },
       events: [
         'contracts-scan-started',
-        'contracts-scan-finished',
-        'contract-updated',
+        'contracts-scan-finished', // also on update of single contract
+        'contracts-updated',
+        'wallet-error',
       ],
       name: 'contracts',
     }
@@ -117,7 +69,9 @@ function createPlugin() {
    * Stop the plugin instance.
    */
   function stop() {
-    logger.debug('Plugin stopping')
+    if (eventsController) {
+      eventsController.stop()
+    }
   }
 
   return {
