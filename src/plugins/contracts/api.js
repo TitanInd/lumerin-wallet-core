@@ -19,7 +19,7 @@ async function _loadContractInstance(
   try {
     const implementationContract = Implementation(web3, implementationAddress)
     const contract = await implementationContract.methods
-      .getPublicVariables()
+      .getPublicVariablesV2()
       .call()
     const stats = await implementationContract.methods.getStats().call()
 
@@ -224,7 +224,7 @@ function createContract(web3, cloneFactory) {
     const marketplaceFee = await cloneFactory.methods.marketplaceFee().call()
 
     const gas = await cloneFactory.methods
-      .setCreateNewRentalContract(
+      .setCreateNewRentalContractV2(
         price,
         limit,
         speed,
@@ -239,7 +239,7 @@ function createContract(web3, cloneFactory) {
       })
 
     return cloneFactory.methods
-      .setCreateNewRentalContract(
+      .setCreateNewRentalContractV2(
         price,
         limit,
         speed,
@@ -440,14 +440,14 @@ function editContract(web3, cloneFactory, lumerin) {
     const marketplaceFee = await cloneFactory.methods.marketplaceFee().call()
 
     const editGas = await cloneFactory.methods
-      .setUpdateContractInformation(contractId, price, limit, speed, duration, profit)
+      .setUpdateContractInformationV2(contractId, price, limit, speed, duration, profit)
       .estimateGas({
         from: sendOptions.from,
         value: marketplaceFee,
       })
 
     const editResult = await cloneFactory.methods
-      .setUpdateContractInformation(contractId, price, limit, speed, duration, profit)
+      .setUpdateContractInformationV2(contractId, price, limit, speed, duration, profit)
       .send({
         ...sendOptions,
         gas: editGas,
