@@ -55,7 +55,6 @@ async function _loadContractInstance(
       _balance: balance,
       _hasFutureTerms: hasFutureTerms,
     } = contract
-      console.log("🚀 ~ file: api.js:56 ~ terms:", contract)
 
     let futureTerms = null
     if (walletAddress && hasFutureTerms && seller === walletAddress) {
@@ -437,21 +436,17 @@ function editContract(web3, cloneFactory, lumerin) {
     const account = web3.eth.accounts.privateKeyToAccount(privateKey)
     web3.eth.accounts.wallet.create(0).add(account)
 
-    const marketplaceFee = await cloneFactory.methods.marketplaceFee().call()
-
     const editGas = await cloneFactory.methods
       .setUpdateContractInformationV2(contractId, price, limit, speed, duration, profit)
       .estimateGas({
         from: sendOptions.from,
-        value: marketplaceFee,
-      })
-
+      });
+      
     const editResult = await cloneFactory.methods
       .setUpdateContractInformationV2(contractId, price, limit, speed, duration, profit)
       .send({
         ...sendOptions,
         gas: editGas,
-        value: marketplaceFee,
       })
 
     logger.debug('Finished edit contract transaction', editResult)
