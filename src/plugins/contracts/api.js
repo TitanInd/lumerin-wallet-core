@@ -193,8 +193,6 @@ function createContract(web3, cloneFactory) {
   }
 
   return async function (params) {
-    console.log("🚀 ~ file: api.js:197 ~ params:", params)
-    // const { gasPrice } = await plugins.wallet.getGasPrice()
     let {
       price,
       limit = 0,
