@@ -18,7 +18,9 @@ const isRateLimitError = (response) => {
     message.includes('rate limit exceeded') ||
     message.includes('reached maximum qps limit') ||
     message.includes('rate limit reached') || 
-    message.includes("we can't execute this request")
+    message.includes("we can't execute this request") ||
+    message.includes("max message response size exceed") || 
+    message.includes("upgrade your plan")
   );
 }
 
