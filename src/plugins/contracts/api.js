@@ -19,7 +19,7 @@ async function _loadContractInstance(
   try {
     const implementationContract = Implementation(web3, implementationAddress)
     const contract = await implementationContract.methods
-      .getPublicVariables()
+      .getPublicVariablesV2()
       .call()
     const stats = await implementationContract.methods.getStats().call()
 
@@ -39,10 +39,14 @@ async function _loadContractInstance(
 
     const {
       _state: state,
-      _price: price, // cost to purchase the contract
-      _limit: limit, // max th provided
-      _speed: speed, // th/s of contract
-      _length: length, // duration of the contract in seconds
+      _terms: {
+        _price: price, // cost to purchase the contract
+        _limit: limit, // max th provided
+        _speed: speed, // th/s of contract
+        _length: length, // duration of the contract in seconds
+        _version: version,
+        _profitTarget: profitTarget
+      }, 
       _startingBlockTimestamp: timestamp, // timestamp of the block at moment of purchase
       _buyer: buyer, // wallet address of the purchasing party
       _seller: seller, // wallet address of the selling party
@@ -50,7 +54,6 @@ async function _loadContractInstance(
       _isDeleted: isDead, // check if contract is dead
       _balance: balance,
       _hasFutureTerms: hasFutureTerms,
-      _version: version,
     } = contract
 
     let futureTerms = null
@@ -62,6 +65,7 @@ async function _loadContractInstance(
         length: data._length,
         limit: data._limit,
         version: data._version,
+        profitTarget: data._profitTarget
       }
     }
 
@@ -87,6 +91,7 @@ async function _loadContractInstance(
         futureTerms,
         history: buyerHistory,
         version,
+        profitTarget
       },
     }
   } catch (err) {
@@ -188,13 +193,13 @@ function createContract(web3, cloneFactory) {
   }
 
   return async function (params) {
-    // const { gasPrice } = await plugins.wallet.getGasPrice()
     let {
       price,
       limit = 0,
       speed,
       duration,
       sellerAddress,
+      profit = 0,
       validatorAddress = '0x0000000000000000000000000000000000000000',
       privateKey,
     } = params
@@ -216,11 +221,12 @@ function createContract(web3, cloneFactory) {
     const marketplaceFee = await cloneFactory.methods.marketplaceFee().call()
 
     const gas = await cloneFactory.methods
-      .setCreateNewRentalContract(
+      .setCreateNewRentalContractV2(
         price,
         limit,
         speed,
         duration,
+        profit,
         validatorAddress,
         pubKey.toString('hex')
       )
@@ -230,11 +236,12 @@ function createContract(web3, cloneFactory) {
       })
 
     return cloneFactory.methods
-      .setCreateNewRentalContract(
+      .setCreateNewRentalContractV2(
         price,
         limit,
         speed,
         duration,
+        profit,
         validatorAddress,
         pubKey.toString('hex')
       )
@@ -420,27 +427,24 @@ function editContract(web3, cloneFactory, lumerin) {
       limit = 0,
       speed,
       duration,
+      profit = 0
     } = params
     const sendOptions = { from: walletId }
 
     const account = web3.eth.accounts.privateKeyToAccount(privateKey)
     web3.eth.accounts.wallet.create(0).add(account)
 
-    const marketplaceFee = await cloneFactory.methods.marketplaceFee().call()
-
     const editGas = await cloneFactory.methods
-      .setUpdateContractInformation(contractId, price, limit, speed, duration)
+      .setUpdateContractInformationV2(contractId, price, limit, speed, duration, profit)
       .estimateGas({
         from: sendOptions.from,
-        value: marketplaceFee,
-      })
-
+      });
+      
     const editResult = await cloneFactory.methods
-      .setUpdateContractInformation(contractId, price, limit, speed, duration)
+      .setUpdateContractInformationV2(contractId, price, limit, speed, duration, profit)
       .send({
         ...sendOptions,
         gas: editGas,
-        value: marketplaceFee,
       })
 
     logger.debug('Finished edit contract transaction', editResult)
