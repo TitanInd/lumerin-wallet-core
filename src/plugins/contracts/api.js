@@ -226,7 +226,7 @@ function createContract(web3, cloneFactory) {
         limit,
         speed,
         duration,
-        profit,
+        +profit,
         validatorAddress,
         pubKey.toString('hex')
       )
@@ -241,7 +241,7 @@ function createContract(web3, cloneFactory) {
         limit,
         speed,
         duration,
-        profit,
+        +profit,
         validatorAddress,
         pubKey.toString('hex')
       )
@@ -435,13 +435,13 @@ function editContract(web3, cloneFactory, lumerin) {
     web3.eth.accounts.wallet.create(0).add(account)
 
     const editGas = await cloneFactory.methods
-      .setUpdateContractInformationV2(contractId, price, limit, speed, duration, profit)
+      .setUpdateContractInformationV2(contractId, price, limit, speed, duration, +profit)
       .estimateGas({
         from: sendOptions.from,
       });
       
     const editResult = await cloneFactory.methods
-      .setUpdateContractInformationV2(contractId, price, limit, speed, duration, profit)
+      .setUpdateContractInformationV2(contractId, price, limit, speed, duration, +profit)
       .send({
         ...sendOptions,
         gas: editGas,
