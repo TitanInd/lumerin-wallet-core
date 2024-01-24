@@ -90,12 +90,14 @@ function createPlugin() {
     const onUpdate = refreshContracts(web3, lumerin, cloneFactory)
     contractEventsListener.setOnUpdate(onUpdate)
 
+    const refreshContractsFn = refreshContracts(web3, lumerin, cloneFactory)
+    const purchaseContractFn = purchaseContract(web3, cloneFactory, lumerin)
     return {
       api: {
-        refreshContracts: refreshContracts(web3, lumerin, cloneFactory),
+        refreshContracts: refreshContractsFn,
         createContract: createContract(web3, cloneFactory),
         cancelContract: cancelContract(web3, cloneFactory),
-        purchaseContract: purchaseContract(web3, cloneFactory, lumerin),
+        purchaseContract: (params) => purchaseContractFn(params).then(() => refreshContractsFn(params.contractId, params.walletId)),
         editContract: editContract(web3, cloneFactory, lumerin),
         getMarketplaceFee: getMarketplaceFee(cloneFactory),
         setContractDeleteStatus: setContractDeleteStatus(
