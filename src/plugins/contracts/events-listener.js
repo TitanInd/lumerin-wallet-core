@@ -33,9 +33,10 @@ class ContractEventsListener {
         .on('connected', () => {
           logger.debug(`Start listen contract (${id}) events`)
         })
-        .on('data', () => {
+        .on('data', async () => {
           logger.debug(`Contract (${id}) updated`)
           if (this.onUpdate){
+            await new Promise((resolve) => setTimeout(resolve, 1000))
             this.onUpdate(id, this.walletAddress || walletAddress)
           }
         })
@@ -49,9 +50,10 @@ class ContractEventsListener {
         .on('connected', () => {
           logger.debug('Start listen clone factory events')
         })
-        .on('data', (event) => {
+        .on('data', async (event) => {
           const contractId = event.returnValues._address
           logger.debug('New contract created', contractId)
+          await new Promise((resolve) => setTimeout(resolve, 1000))
           this.onUpdate(contractId, this.walletAddress)
         })
     }
