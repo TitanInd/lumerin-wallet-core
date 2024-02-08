@@ -9,7 +9,7 @@ const isRateLimitError = (response, payload) => {
     return true
   }
 
-  if (payload?.method === 'eth_call' && response.error?.message?.includes('execution reverted') || response.error?.code === -32000) {
+  if (payload?.method === 'eth_call' && (response.error?.message?.includes('execution reverted') || response.error?.code === -32000)) {
     return true
   }
 
