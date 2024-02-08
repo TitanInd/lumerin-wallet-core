@@ -2,10 +2,14 @@ const Web3 = require('web3')
 const https = require('https')
 const logger = require('../../logger')
 
-const isRateLimitError = (response) => {
+const isRateLimitError = (response, payload) => {
   const { result, ...data } = response
   const code = response.error?.code
   if (code === 429 || code === -32029 || code === -32097) {
+    return true
+  }
+
+  if (payload?.method === 'eth_call' && response.error?.message?.includes('execution reverted') || response.error?.code === -32000) {
     return true
   }
 
@@ -24,13 +28,19 @@ const isRateLimitError = (response) => {
   );
 }
 
+const MAX_RETRIES = 10;
 const timeouts = {
-  0: 500,
-  1: 750,
-  2: 1000,
-  3: 1500,
-  4: 2000,
+  0: 1000,
+  1: 1200,
+  2: 1400,
+  3: 1600,
+  4: 1800,
   5: 2000,
+  6: 2200,
+  7: 2400,
+  8: 2600,
+  9: 2800,
+  10: 3000,
 }
 
 class Web3Http extends Web3 {
@@ -65,9 +75,9 @@ class Web3Http extends Web3 {
     const originalSend = this.currentProvider.send.bind(this.currentProvider)
     this.currentProvider.send = (payload, callback) => {
       originalSend(payload, async (error, response) => {
-        if (error || isRateLimitError(response)) {
+        if (error || isRateLimitError(response, payload)) {
           // Avoid infinite loop
-          if (this.retryCount >= this.providers.length * 2) {
+          if (this.retryCount >= MAX_RETRIES) {
             callback(error, response)
             this.retryCount = 0
             return
@@ -79,7 +89,7 @@ class Web3Http extends Web3 {
           this.retryCount += 1
           const timeout = timeouts[this.retryCount] || 1000;
           logger.error(
-            `Switched to provider: ${this.providers[this.currentIndex].host}, timeout: ${timeout}`
+            `Switched to provider: ${this.providers[this.currentIndex].host}, timeout: ${timeout}, retry count: ${this.retryCount}, request payload: ${JSON.stringify(payload)}`,
           )
           await new Promise((resolve) => setTimeout(resolve, timeout))
 
