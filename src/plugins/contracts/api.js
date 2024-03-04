@@ -95,6 +95,7 @@ async function _loadContractInstance(
       },
     }
   } catch (err) {
+    logger.error(err)
     logger.error(
       'Error when trying to load Contracts by address in the Implementation contract: ',
       err

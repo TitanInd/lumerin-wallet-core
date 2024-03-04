@@ -24,7 +24,8 @@ const isRateLimitError = (response, payload) => {
     message.includes('rate limit reached') || 
     message.includes("we can't execute this request") ||
     message.includes("max message response size exceed") || 
-    message.includes("upgrade your plan")
+    message.includes("upgrade your plan") ||
+    message.includes("Failed to validate quota usage")
   );
 }
 
