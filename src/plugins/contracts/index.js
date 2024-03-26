@@ -1,26 +1,18 @@
 //@ts-check
 'use strict'
 
-// const debug = require('debug')('lmr-wallet:core:contracts')
-const logger = require('../../logger');
+const logger = require('../../logger')
 const { Lumerin, CloneFactory } = require('contracts-js')
 
-/**
- * @type {typeof import('web3').default}
- */
-//@ts-ignore
-const Web3 = require('web3')
-
 const {
-  getContracts,
   createContract,
   cancelContract,
   purchaseContract,
   setContractDeleteStatus,
   editContract,
-  getMarketplaceFee
+  getMarketplaceFee,
 } = require('./api')
-const { ContractEventsListener } = require('./events-listener')
+const { Indexer } = require('./indexer')
 
 /**
  * Create a plugin instance.
@@ -35,76 +27,70 @@ function createPlugin() {
    * @returns {{ api: {[key: string]:any}, events: string[], name: string }} The instance details.
    */
   function start({ config, eventBus, plugins }) {
-    const { lmrTokenAddress, cloneFactoryAddress } = config
+    const {
+      lmrTokenAddress,
+      cloneFactoryAddress,
+      indexerUrl,
+      pollingInterval,
+    } = config
     const { eth } = plugins
 
     const web3 = eth.web3
-    const web3Subscriptionable = new Web3(plugins.eth.web3SubscriptionProvider)
 
     const lumerin = Lumerin(web3, lmrTokenAddress)
     const cloneFactory = CloneFactory(web3, cloneFactoryAddress)
-    const cloneFactorySubscriptionable = CloneFactory(
-      web3Subscriptionable,
-      cloneFactoryAddress
-    )
 
-    const refreshContracts =
-      (web3, lumerin, cloneFactory) => async (contractId, walletAddress) => {
-        eventBus.emit('contracts-scan-started', {})
-        ContractEventsListener.getInstance().walletAddress = walletAddress;
-        const addresses = contractId
-          ? [contractId]
-          : await cloneFactory.methods
-              .getContractList()
-              .call()
-              .catch((error) => {
-                logger.error('cannot get list of contract addresses:', error)
-                throw error
-              })
+    const indexer = new Indexer(indexerUrl)
 
-        return getContracts(
-          web3,
-          web3Subscriptionable,
-          lumerin,
-          cloneFactory,
-          addresses,
-          walletAddress, 
-          eventBus,
-        )
-          .then((contracts) => {
-            eventBus.emit('contracts-scan-finished', {
-              actives: contracts,
-            })
-          })
-        .catch(function (error) {
-          logger.error('Could not sync contracts/events', error)
-          throw error
+    const refreshContracts = async (contractId, walletAddress) => {
+      if (walletAddress) {
+        Indexer.walletAddr = walletAddress
+      }
+      eventBus.emit('contracts-scan-started', {})
+
+      try {
+        const contracts = contractId
+          ? await indexer.getContract(contractId)
+          : await indexer.getContracts()
+
+        eventBus.emit('contracts-scan-finished', {
+          actives: contracts,
         })
+      } catch (error) {
+        logger.error(
+          `Could not sync contracts/events, params: ${contractId}, error:`,
+          error
+        )
+        throw error
+      }
     }
 
-    const contractEventsListener = ContractEventsListener.create(
-      cloneFactorySubscriptionable,
-      config.debug
-    )
+    setInterval(() => {
+      refreshContracts()
+    }, pollingInterval)
 
-    const onUpdate = refreshContracts(web3, lumerin, cloneFactory)
-    contractEventsListener.setOnUpdate(onUpdate)
+    const wrapAction = (fn) => async (params) => {
+      const contractId = params?.contractId
+      const result = await fn(params)
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+      await refreshContracts(contractId).catch((error) => {
+        logger.error('Error refreshing contracts', error)
+      })
+      return result
+    }
 
-    const refreshContractsFn = refreshContracts(web3, lumerin, cloneFactory)
     const purchaseContractFn = purchaseContract(web3, cloneFactory, lumerin)
     const cancelContractFn = cancelContract(web3, cloneFactory)
     return {
       api: {
-        refreshContracts: refreshContractsFn,
-        createContract: createContract(web3, cloneFactory),
-        cancelContract: cancelContractFn,
-        purchaseContract: purchaseContractFn,
-        editContract: editContract(web3, cloneFactory, lumerin),
+        refreshContracts,
+        createContract: wrapAction(createContract(web3, cloneFactory)),
+        cancelContract: wrapAction(cancelContractFn),
+        purchaseContract: wrapAction(purchaseContractFn),
+        editContract: wrapAction(editContract(web3, cloneFactory, lumerin)),
         getMarketplaceFee: getMarketplaceFee(cloneFactory),
-        setContractDeleteStatus: setContractDeleteStatus(
-          web3,
-          cloneFactory,
-          onUpdate,
+        setContractDeleteStatus: wrapAction(
+          setContractDeleteStatus(web3, cloneFactory)
         ),
       },
       events: [
