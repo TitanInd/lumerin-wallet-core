@@ -3,7 +3,6 @@ const logger = require('../../logger')
 const { encrypt } = require('ecies-geth')
 const { Implementation } = require('contracts-js')
 const { remove0xPrefix, add65BytesPrefix } = require('./helpers')
-const { ContractEventsListener } = require('./events-listener')
 const ethereumWallet = require('ethereumjs-wallet').default
 
 /**
@@ -102,78 +101,6 @@ async function _loadContractInstance(
     )
     throw err
   }
-}
-
-/**
- * @param {import('web3').default} web3
- * @param {import('web3').default} web3Subscriptionable
- * @param {import('contracts-js').LumerinContext} lumerin
- * @param {import('contracts-js').CloneFactoryContext} cloneFactory
- * @param {string[]} addresses
- * @param {string} walletAddress
- */
-async function getContracts(
-  web3,
-  web3Subscriptionable,
-  lumerin,
-  cloneFactory,
-  addresses,
-  walletAddress,
-  eventBus
-) {
-  const chunkSize = 5
-  const result = []
-  for (let i = 0; i < addresses.length; i += chunkSize) {
-    const contracts = await Promise.all(
-      addresses
-        .slice(i, i + chunkSize)
-        .map((address) =>
-          getContract(
-            web3,
-            web3Subscriptionable,
-            lumerin,
-            cloneFactory,
-            address,
-            walletAddress
-          )
-        )
-    )
-    eventBus.emit('contract-updated', {
-      actives: contracts,
-    })
-    result.push(...contracts)
-  }
-  return result
-}
-
-/**
- * @param {import('web3').default} web3
- * @param {import('web3').default} web3Subscriptionable
- * @param {import('contracts-js').LumerinContext} lumerin
- * @param {string} contractId
- * @param {string} walletAddress
- */
-async function getContract(
-  web3,
-  web3Subscriptionable,
-  lumerin,
-  cloneFactory,
-  contractId,
-  walletAddress
-) {
-  const contractEventsListener = ContractEventsListener.getInstance()
-  const contractInfo = await _loadContractInstance(
-    web3,
-    contractId,
-    walletAddress
-  )
-
-  contractEventsListener.addContract(
-    contractInfo.data.id,
-    Implementation(web3Subscriptionable, contractId),
-    walletAddress
-  )
-  return contractInfo.data
 }
 
 /**
@@ -329,9 +256,6 @@ function setContractDeleteStatus(web3, cloneFactory, onUpdate) {
         from: walletAddress,
         gas,
       })
-    onUpdate(contractId, walletAddress).catch((err) =>
-      logger.error(`Failed to refresh after setContractDeadStatus: ${err}`)
-    )
     return result
   }
 }
@@ -453,8 +377,6 @@ function editContract(web3, cloneFactory, lumerin) {
 }
 
 module.exports = {
-  getContracts,
-  getContract,
   createContract,
   cancelContract,
   purchaseContract,
