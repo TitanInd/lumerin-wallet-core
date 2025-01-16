@@ -132,13 +132,6 @@ function createContract(web3, cloneFactory) {
       privateKey,
     } = params
 
-    const isWhitelisted = await cloneFactory.methods
-      .checkWhitelist(sellerAddress)
-      .call()
-    if (!isWhitelisted) {
-      throw new Error('seller is not whitelisted')
-    }
-
     const tempWallet = ethereumWallet.fromPrivateKey(
       Buffer.from(remove0xPrefix(privateKey), 'hex')
     )
