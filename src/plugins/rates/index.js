@@ -2,7 +2,7 @@
 
 const logger = require('../../logger');
 
-const { getNetworkDifficulty } = require('./network-difficulty')
+const { getNetworkDifficulty, getBlockReward } = require('./network-difficulty')
 const { getRate } = require('./rate')
 const createStream = require('./stream')
 
@@ -53,11 +53,20 @@ function createPlugin() {
       })
     })
 
-    networkDifficultyStream = createStream(getNetworkDifficulty, ratesUpdateMs)
+    const streamFn = async () => {
+      return {
+        difficulty: await getNetworkDifficulty(),
+        reward: await getBlockReward(),
+      }
+    }
 
-    networkDifficultyStream.on('data', function (difficulty) {
+    networkDifficultyStream = createStream(streamFn, ratesUpdateMs)
+
+    networkDifficultyStream.on('data', function (data) {
+      const { difficulty, reward } = data;
       eventBus.emit('network-difficulty-updated', {
         difficulty,
+        reward,
       })
     })
 
