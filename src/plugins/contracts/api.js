@@ -335,6 +335,85 @@ function purchaseContract(web3, cloneFactory, lumerin) {
  * @param {import('contracts-js').LumerinContext} lumerin
  * @returns
  */
+function purchaseContractV2(web3, cloneFactory, lumerin) {
+  return async (params) => {
+    const { walletId, contractId, url, privateKey, price, version, validator, validatorUrl } = params
+    const sendOptions = { from: walletId }
+
+    //getting pubkey from contract to be purchased
+    const implementationContract = Implementation(web3, contractId)
+
+    const pubKey = await implementationContract.methods.pubKey().call()
+
+    //encrypting plaintext url parameter
+    const ciphertext = await encrypt(
+      Buffer.from(add65BytesPrefix(pubKey), 'hex'),
+      Buffer.from(url)
+    )
+
+    const account = web3.eth.accounts.privateKeyToAccount(privateKey)
+    web3.eth.accounts.wallet.create(0).add(account)
+
+    const {
+      data: { isDead, price: p },
+    } = await _loadContractInstance(web3, contractId)
+    if (isDead) {
+      throw new Error('Contract is deleted already')
+    }
+
+    const increaseAllowanceEstimate = await lumerin.methods
+      .increaseAllowance(cloneFactory.options.address, price)
+      .estimateGas({
+        from: walletId,
+      })
+
+    await lumerin.methods
+      .increaseAllowance(cloneFactory.options.address, price)
+      .send({
+        from: walletId,
+        gas: increaseAllowanceEstimate,
+      })
+
+    const marketplaceFee = await cloneFactory.methods.marketplaceFee().call()
+
+    const purchaseGas = await cloneFactory.methods
+      .setPurchaseRentalContractV2(
+        contractId,
+        validator,
+        validatorUrl,
+        ciphertext.toString('hex'),
+        version
+      )
+      .estimateGas({
+        from: sendOptions.from,
+        value: marketplaceFee,
+      })
+
+    const purchaseResult = await cloneFactory.methods
+      .setPurchaseRentalContractV2(
+        contractId,
+        validator,
+        validatorUrl,
+        ciphertext.toString('hex'),
+        version
+      )
+      .send({
+        ...sendOptions,
+        gas: purchaseGas,
+        value: marketplaceFee,
+      })
+
+    logger.debug('Finished puchase transaction', purchaseResult)
+  }
+}
+
+/**
+ *
+ * @param {import('web3').default} web3
+ * @param {import('contracts-js').CloneFactoryContext} cloneFactory
+ * @param {import('contracts-js').LumerinContext} lumerin
+ * @returns
+ */
 function editContract(web3, cloneFactory, lumerin) {
   return async (params) => {
     const {

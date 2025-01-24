@@ -14,6 +14,7 @@ const pluginCreators = [
   require('./plugins/proxy-router'),
   require('./plugins/contracts'),
   require('./plugins/devices'),
+  require('./plugins/validator-registry')
 ]
 
 function createCore() {
