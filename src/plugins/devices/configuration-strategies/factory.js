@@ -1,6 +1,6 @@
 const { AbortSignal } = require('@azure/abort-controller')
 
-const { AntMinerStrategy } = require('./ant-miner-strategy')
+// const { AntMinerStrategy } = require('./ant-miner-strategy')
 const { TcpConfigurationStrategy } = require('./tcp-strategy')
 const { ConfigurationStrategyInterface } = require('./strategy.interface');
 
@@ -11,7 +11,7 @@ class ConfigurationStrategyFactory {
    * @returns {Promise<ConfigurationStrategyInterface|null>}
    */
   static async createStrategy(host, abort) {
-    const strategies = [TcpConfigurationStrategy, AntMinerStrategy]
+    const strategies = [TcpConfigurationStrategy]
     for (const Strategy of strategies) {
       try {
         const strategy = new Strategy(host, abort)
