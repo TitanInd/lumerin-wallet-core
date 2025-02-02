@@ -1,5 +1,5 @@
 const AxiosDigestAuth = require('@mhoc/axios-digest-auth')
-const cheerio = require('cheerio')
+// const cheerio = require('cheerio')
 
 const { ConfigurationStrategyInterface } = require('./strategy.interface')
 
