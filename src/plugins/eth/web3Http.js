@@ -9,9 +9,15 @@ const isRateLimitError = (response, payload) => {
     return true
   }
 
-  if (payload?.method === 'eth_call' && (response.error?.message?.includes('execution reverted') || response.error?.code === -32000)) {
+  // Some providers return execution reverted error for eth_call when rate limiting
+  if (
+    payload?.method === 'eth_call' &&
+    response.error?.message?.includes('execution reverted') &&
+    (response.error?.data === '' || response.error?.data === '0x' || response.error?.data === null || response.error?.data === undefined)
+  ) {
     return true
   }
+
 
   const message = response.error?.message?.toLowerCase()
   if (!message) {
@@ -21,9 +27,9 @@ const isRateLimitError = (response, payload) => {
     message.includes('too many requests') ||
     message.includes('rate limit exceeded') ||
     message.includes('reached maximum qps limit') ||
-    message.includes('rate limit reached') || 
+    message.includes('rate limit reached') ||
     message.includes("we can't execute this request") ||
-    message.includes("max message response size exceed") || 
+    message.includes("max message response size exceed") ||
     message.includes("upgrade your plan") ||
     message.includes("Failed to validate quota usage")
   );
