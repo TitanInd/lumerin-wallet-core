@@ -1,6 +1,6 @@
 {
   "name": "@lumerin/wallet-core",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "author": {
     "name": "Lumerin",
     "email": "developer@lumerin.io",
@@ -31,6 +31,7 @@
   "dependencies": {
     "@azure/abort-controller": "^1.1.0",
     "@mhoc/axios-digest-auth": "^0.8.0",
+    "@dopex-io/web3-multicall": "^0.1.10",
     "abi-decoder": "^2.4.0",
     "axios": "0.21.1",
     "axios-cookiejar-support": "1.0.1",
@@ -57,7 +58,6 @@
     "websocket-reconnector": "1.1.1"
   },
   "devDependencies": {
-    "@dopex-io/web3-multicall": "^0.1.10",
     "chai": "4.3.4",
     "chai-as-promised": "7.1.1",
     "check-tag-matches": "1.0.0",
